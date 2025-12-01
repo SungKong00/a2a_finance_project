@@ -1,0 +1,19 @@
+[project]
+name = "my-a2a-demo-mcp"
+version = "0.1.0"
+description = "A2A Demo with MCP Integration"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp>=1.0.0",
+    "yfinance>=0.2.40",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+]
+
+[tool.uv.workspace]
+members = [
+    "demo/ui",
+    "hosts/multiagent",
+    "extensions/timestamp",
+    "mcp_server",
+]
