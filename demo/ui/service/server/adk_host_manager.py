@@ -84,6 +84,9 @@ class ADKHostManager(ApplicationManager):
 
         self._initialize_host()
 
+        # Auto-register stock analysis agents
+        self._auto_register_agents()
+
         # Map of message id to task id
         self._task_map: dict[str, str] = {}
         # Map to manage 'lost' message ids until protocol level id is introduced
@@ -100,6 +103,34 @@ class ADKHostManager(ApplicationManager):
             session_service=self._session_service,
             memory_service=self._memory_service,
         )
+
+    def _auto_register_agents(self):
+        """Auto-register the 4 specialized stock analysis agents with retry logic"""
+        agents_to_register = [
+            ('localhost:10101', 'Technical Analyst'),
+            ('localhost:10102', 'Fundamental Analyst'),
+            ('localhost:10103', 'Sentiment Analyst'),
+            ('localhost:10104', 'Risk Assessor'),
+        ]
+
+        import time
+        max_retries = 3
+        retry_delay = 2  # seconds
+
+        for url, name in agents_to_register:
+            for attempt in range(max_retries):
+                try:
+                    print(f'Auto-registering {name} at {url} (attempt {attempt + 1}/{max_retries})...')
+                    self.register_agent(url)
+                    print(f'✓ {name} registered successfully')
+                    break  # Success, move to next agent
+                except Exception as e:
+                    if attempt < max_retries - 1:
+                        print(f'  Retry in {retry_delay}s... ({e})')
+                        time.sleep(retry_delay)
+                    else:
+                        print(f'✗ Failed to auto-register {name} at {url} after {max_retries} attempts: {e}')
+                        print(f'  You can manually add {name} later via UI')
 
     async def create_conversation(self) -> Conversation:
         session = await self._session_service.create_session(

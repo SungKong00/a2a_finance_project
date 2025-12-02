@@ -11,8 +11,11 @@ resolution-markers = [
 members = [
     "a2a-python-example-ui",
     "a2a-sample-client-multiagent",
+    "fundamental-analyst-agent",
     "my-a2a-stock-analysis",
-    "stock-analyst-agent",
+    "risk-assessor-agent",
+    "sentiment-analyst-agent",
+    "technical-analyst-agent",
     "timestamp-ext",
 ]
 
@@ -724,6 +727,23 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/24/7f/2747c0d332b9acfa75dc84447a066fdf812b5a6b8d30472b74d309bfe8cb/fsspec-2025.10.0.tar.gz", hash = "sha256:b6789427626f068f9a83ca4e8a3cc050850b6c0f71f99ddb4f542b8266a26a59", size = 309285, upload-time = "2025-10-30T14:58:44.036Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/eb/02/a6b21098b1d5d6249b7c5ab69dde30108a71e4e819d4a9778f1de1d5b70d/fsspec-2025.10.0-py3-none-any.whl", hash = "sha256:7c7712353ae7d875407f97715f0e1ffcc21e33d5b24556cb1e090ae9409ec61d", size = 200966, upload-time = "2025-10-30T14:58:42.53Z" },
+]
+
+[[package]]
+name = "fundamental-analyst-agent"
+version = "0.1.0"
+source = { editable = "agents/fundamental_analyst" }
+dependencies = [
+    { name = "google-adk", extra = ["a2a"] },
+    { name = "python-dotenv" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-adk", extras = ["a2a"], specifier = ">=1.7.0" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
 [[package]]
@@ -2740,6 +2760,23 @@ wheels = [
 ]
 
 [[package]]
+name = "risk-assessor-agent"
+version = "0.1.0"
+source = { editable = "agents/risk_assessor" }
+dependencies = [
+    { name = "google-adk", extra = ["a2a"] },
+    { name = "python-dotenv" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-adk", extras = ["a2a"], specifier = ">=1.7.0" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
+]
+
+[[package]]
 name = "rpds-py"
 version = "0.30.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2856,6 +2893,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/69/82/251d5f1aa4dcad30aed491b4657cecd9fb4274214da6960ffec144c260f7/ruff-0.14.7-py3-none-win32.whl", hash = "sha256:e33052c9199b347c8937937163b9b149ef6ab2e4bb37b042e593da2e6f6cccfa", size = 13126751, upload-time = "2025-11-28T20:55:03.47Z" },
     { url = "https://files.pythonhosted.org/packages/a8/b5/d0b7d145963136b564806f6584647af45ab98946660d399ec4da79cae036/ruff-0.14.7-py3-none-win_amd64.whl", hash = "sha256:e17a20ad0d3fad47a326d773a042b924d3ac31c6ca6deb6c72e9e6b5f661a7c6", size = 14531726, upload-time = "2025-11-28T20:54:59.121Z" },
     { url = "https://files.pythonhosted.org/packages/1d/d2/1637f4360ada6a368d3265bf39f2cf737a0aaab15ab520fc005903e883f8/ruff-0.14.7-py3-none-win_arm64.whl", hash = "sha256:be4d653d3bea1b19742fcc6502354e32f65cd61ff2fbdb365803ef2c2aec6228", size = 13609215, upload-time = "2025-11-28T20:55:15.375Z" },
+]
+
+[[package]]
+name = "sentiment-analyst-agent"
+version = "0.1.0"
+source = { editable = "agents/sentiment_analyst" }
+dependencies = [
+    { name = "google-adk", extra = ["a2a"] },
+    { name = "python-dotenv" },
+    { name = "uvicorn" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "google-adk", extras = ["a2a"], specifier = ">=1.7.0" },
+    { name = "python-dotenv", specifier = ">=1.1.0" },
+    { name = "uvicorn", specifier = ">=0.34.0" },
 ]
 
 [[package]]
@@ -3014,9 +3068,9 @@ wheels = [
 ]
 
 [[package]]
-name = "stock-analyst-agent"
+name = "technical-analyst-agent"
 version = "0.1.0"
-source = { editable = "agents/stock_analyst" }
+source = { editable = "agents/technical_analyst" }
 dependencies = [
     { name = "google-adk", extra = ["a2a"] },
     { name = "python-dotenv" },
