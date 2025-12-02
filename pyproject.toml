@@ -11,4 +11,5 @@ members = [
     "hosts/multiagent",
     "extensions/timestamp",
     "demo/ui",
+    "agents/stock_analyst",
 ]
