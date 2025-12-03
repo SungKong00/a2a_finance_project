@@ -252,7 +252,8 @@ Current agent: {current_agent['active_agent']}
         client = self.remote_agent_connections[agent_name]
         if not client:
             raise ValueError(f'Client not available for {agent_name}')
-        task_id = state.get('task_id', None)
+        # Do NOT pass task_id to sub-agents - they should create their own tasks
+        # task_id = state.get('task_id', None)
         context_id = state.get('context_id', None)
         message_id = state.get('message_id', None)
         task: Task
@@ -264,7 +265,7 @@ Current agent: {current_agent['active_agent']}
             parts=[Part(root=TextPart(text=message))],
             message_id=message_id,
             context_id=context_id,
-            task_id=task_id,
+            task_id=None,  # Let sub-agent create its own task
         )
         response = await client.send_message(request_message)
         if isinstance(response, Message):
