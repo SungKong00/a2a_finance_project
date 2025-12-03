@@ -107,10 +107,10 @@ class ADKHostManager(ApplicationManager):
     def _auto_register_agents(self):
         """Auto-register the 4 specialized stock analysis agents with retry logic"""
         agents_to_register = [
-            ('localhost:10101', 'Technical Analyst'),
-            ('localhost:10102', 'Fundamental Analyst'),
-            ('localhost:10103', 'Sentiment Analyst'),
-            ('localhost:10104', 'Risk Assessor'),
+            ('http://localhost:10101', 'Technical Analyst'),
+            ('http://localhost:10102', 'Fundamental Analyst'),
+            ('http://localhost:10103', 'Sentiment Analyst'),
+            ('http://localhost:10104', 'Risk Assessor'),
         ]
 
         import time

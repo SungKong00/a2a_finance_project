@@ -131,12 +131,16 @@ class HostAgent:
 When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 주가 분석해줘"):
 
 1. **Identify the stock ticker** from the user's request
-2. **Delegate to ALL 4 analysts** - Send the same analysis request to each specialist:
-   - Use `send_message` to technical_analyst
-   - Use `send_message` to fundamental_analyst
-   - Use `send_message` to sentiment_analyst
-   - Use `send_message` to risk_assessor
+
+2. **Delegate to ALL 4 analysts** - Send a simple analysis request to each specialist:
+   - Use `send_message` to technical_analyst with: "Analyze [TICKER] stock"
+   - Use `send_message` to fundamental_analyst with: "Analyze [TICKER] stock"
+   - Use `send_message` to sentiment_analyst with: "Analyze [TICKER] stock"
+   - Use `send_message` to risk_assessor with: "Analyze [TICKER] stock"
+   - Each analyst has their own data access tools and will fetch what they need
+
 3. **Collect all 4 reports** - Wait for responses from all analysts
+
 4. **Synthesize findings in Korean (한국어)** - Combine insights into a comprehensive investment recommendation
 
 **Synthesis Guidelines (한국어로 작성):**
