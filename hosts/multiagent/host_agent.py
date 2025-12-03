@@ -131,6 +131,14 @@ class HostAgent:
 When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 주가 분석해줘"):
 
 1. **Identify the stock ticker** from the user's request
+   - **IMPORTANT: For Korean stocks, use the correct Yahoo Finance ticker format:**
+     - 삼성전자 → 005930.KS (NOT SMSN.IL)
+     - SK하이닉스 → 000660.KS
+     - NAVER → 035420.KS
+     - 카카오 → 035720.KS
+     - 현대차 → 005380.KS
+   - For US stocks: Use standard tickers (AAPL, TSLA, MSFT, GOOGL, etc.)
+   - If unsure, default to .KS suffix for Korean stocks
 
 2. **Delegate to ALL 4 analysts** - Send a simple analysis request to each specialist:
    - Use `send_message` to technical_analyst with: "Analyze [TICKER] stock"
@@ -182,6 +190,30 @@ When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 �
 ### ✅ 실행 항목
 - [실행 항목 1]
 - [실행 항목 2]
+
+---
+### 🔍 데이터 검증 (UI Debug)
+*이 섹션은 구조화된 데이터 반환을 검증하기 위한 디버그 정보입니다.*
+
+**Technical Analyst Data:**
+```json
+[Technical Analyst로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+```
+
+**Fundamental Analyst Data:**
+```json
+[Fundamental Analyst로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+```
+
+**Sentiment Analyst Data:**
+```json
+[Sentiment Analyst로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+```
+
+**Risk Assessor Data:**
+```json
+[Risk Assessor로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+```
 ```
 
 **Important:**
@@ -191,6 +223,7 @@ When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 �
 - Be sure to include the analyst names when presenting their findings
 - Don't make up responses - rely on actual analyst outputs
 - Translate and summarize English analyst responses into Korean
+- **JSON Extraction**: Each analyst will return a JSON block at the end of their response. You MUST extract this JSON block and place it in the "Data Verification (UI Debug)" section exactly as received.
 
 **Discovery:**
 - Use `list_remote_agents` to see available analysts
@@ -271,7 +304,24 @@ Current agent: {current_agent['active_agent']}
             context_id=context_id,
             task_id=None,  # Let sub-agent create its own task
         )
-        response = await client.send_message(request_message)
+        print(f"HostAgent: Sending message to {agent_name}...")
+        try:
+            response = await client.send_message(request_message)
+        except Exception as e:
+            print(f"HostAgent: Error communicating with {agent_name}: {e}")
+            error_msg = f"Error: Failed to get response from {agent_name}. "
+            if "429" in str(e) or "ResourceExhausted" in str(e):
+                error_msg += "API Quota Exhausted (429). Please try again later."
+            else:
+                error_msg += str(e)
+            
+            # Return a mock JSON response so the UI doesn't hang
+            mock_json = {
+                "ticker": "ERROR",
+                "analysis_content": f"**[SYSTEM ERROR]**\n\n{error_msg}\n\n(This is a system generated message to prevent infinite loading.)"
+            }
+            return [json.dumps(mock_json)]
+        print(f"HostAgent: Received response from {agent_name}")
         if isinstance(response, Message):
             return await convert_parts(response.parts, tool_context)
         task: Task = response
@@ -326,7 +376,8 @@ async def convert_part(part: Part, tool_context: ToolContext):
     if part.root.kind == 'text':
         return part.root.text
     if part.root.kind == 'data':
-        return part.root.data
+        # Convert data to JSON string for the LLM to consume as text
+        return json.dumps(part.root.data, ensure_ascii=False)
     if part.root.kind == 'file':
         # Repackage A2A FilePart to google.genai Blob
         # Currently not considering plain text as files

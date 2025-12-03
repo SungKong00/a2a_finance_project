@@ -598,7 +598,28 @@ class ADKHostManager(ApplicationManager):
     ) -> list[Part]:
         parts = []
         try:
-            for p in part.function_response.response['result']:
+            response = part.function_response.response
+            # Handle different response formats:
+            # 1. {'result': [...]} - original expected format
+            # 2. [...] - direct list from send_message
+            # 3. other dict formats
+            if isinstance(response, dict) and 'result' in response:
+                items = response['result']
+            elif isinstance(response, list):
+                items = response
+            elif isinstance(response, dict):
+                # Dict without 'result' key - wrap it
+                items = [response]
+            elif isinstance(response, str):
+                # Plain string response
+                parts.append(Part(root=TextPart(text=response)))
+                return parts
+            else:
+                # Unknown format - convert to string
+                parts.append(Part(root=TextPart(text=str(response))))
+                return parts
+
+            for p in items:
                 if isinstance(p, str):
                     parts.append(Part(root=TextPart(text=p)))
                 elif isinstance(p, dict):
@@ -632,9 +653,11 @@ class ADKHostManager(ApplicationManager):
                     else:
                         parts.append(Part(root=DataPart(data=p.data)))
                 else:
-                    parts.append(Part(root=TextPart(text='Unknown content')))
+                    parts.append(Part(root=TextPart(text=str(p))))
         except Exception as e:
             print("Couldn't convert to messages:", e)
+            import traceback
+            traceback.print_exc()
             parts.append(
                 Part(root=DataPart(data=part.function_response.model_dump()))
             )
