@@ -2,6 +2,7 @@ import asyncio
 import base64
 import json
 import os
+import re
 import uuid
 
 import httpx
@@ -374,7 +375,20 @@ async def convert_parts(parts: list[Part], tool_context: ToolContext):
 
 async def convert_part(part: Part, tool_context: ToolContext):
     if part.root.kind == 'text':
-        return part.root.text
+        text = part.root.text
+        # Try to extract JSON block from markdown response
+        json_match = re.search(r'```json\s*(\{.*?\})\s*```', text, re.DOTALL)
+        if json_match:
+            try:
+                json_data = json.loads(json_match.group(1))
+                # Return both the original text and the extracted JSON
+                # This allows the Host Agent to use the JSON for synthesis
+                # while preserving the full markdown report
+                return json.dumps(json_data, ensure_ascii=False)
+            except json.JSONDecodeError as e:
+                print(f"Warning: Failed to parse JSON from text: {e}")
+                # Fall through to return original text
+        return text
     if part.root.kind == 'data':
         # Convert data to JSON string for the LLM to consume as text
         return json.dumps(part.root.data, ensure_ascii=False)
