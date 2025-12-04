@@ -105,7 +105,6 @@ class HostAgent:
             tools=[
                 self.list_remote_agents,
                 self.send_message,
-                self.analyze_stock_parallel,
             ],
         )
 
@@ -142,13 +141,14 @@ When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 �
    - For US stocks: Use standard tickers (AAPL, TSLA, MSFT, GOOGL, etc.)
    - If unsure, default to .KS suffix for Korean stocks
 
-2. **Use the `analyze_stock_parallel` tool** - This executes all 4 analyst queries simultaneously:
-   - Call `analyze_stock_parallel(ticker="[TICKER]")`
-   - This tool automatically queries technical_analyst, fundamental_analyst, sentiment_analyst, and risk_assessor in parallel
-   - **Performance benefit**: Reduces latency from ~30s (sequential) to ~8-10s (parallel)
-   - Each analyst has their own data access tools and will fetch what they need
+2. **Query each specialized analyst** using the `send_message` tool:
+   - `send_message(analyst_name="technical_analyst", message="Analyze [TICKER] stock")`
+   - `send_message(analyst_name="fundamental_analyst", message="Analyze [TICKER] stock")`
+   - `send_message(analyst_name="sentiment_analyst", message="Analyze [TICKER] stock")`
+   - `send_message(analyst_name="risk_assessor", message="Analyze [TICKER] stock")`
+   - Each analyst will independently fetch data and perform their specialized analysis
 
-3. **Collect all 4 reports** - The parallel tool returns all analyst responses together
+3. **Collect all 4 reports** - Wait for each analyst to complete their analysis
 
 4. **Synthesize findings in Korean (한국어)** - Combine insights into a comprehensive investment recommendation
 
@@ -364,71 +364,6 @@ Current agent: {current_agent['active_agent']}
                     await convert_parts(artifact.parts, tool_context)
                 )
         return response
-
-    async def analyze_stock_parallel(
-        self, ticker: str, tool_context: ToolContext
-    ):
-        """Analyze a stock by querying all 4 specialized analysts in parallel.
-
-        This is the preferred method for stock analysis as it executes all 4 agent
-        queries simultaneously, reducing total latency from ~30s to ~8-10s.
-
-        Args:
-          ticker: The stock ticker symbol to analyze (e.g., "AAPL", "005930.KS")
-          tool_context: The tool context this method runs in.
-
-        Returns:
-          A dictionary with keys: technical_analyst, fundamental_analyst,
-          sentiment_analyst, risk_assessor, each containing the analyst's response.
-        """
-        analyst_names = [
-            "technical_analyst",
-            "fundamental_analyst",
-            "sentiment_analyst",
-            "risk_assessor"
-        ]
-
-        # Create tasks for parallel execution
-        tasks = []
-        for analyst in analyst_names:
-            task = self.send_message(
-                analyst_name=analyst,
-                message=f"Analyze {ticker} stock",
-                tool_context=tool_context
-            )
-            tasks.append(task)
-
-        print(f"HostAgent: Starting parallel analysis of {ticker} with 4 agents...")
-
-        # Execute all analyst queries in parallel
-        try:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-        except Exception as e:
-            print(f"HostAgent: Error in parallel execution: {e}")
-            raise
-
-        print(f"HostAgent: Parallel analysis complete for {ticker}")
-
-        # Package results into a structured response
-        response = {}
-        for i, analyst in enumerate(analyst_names):
-            if isinstance(results[i], Exception):
-                print(f"HostAgent: {analyst} failed with error: {results[i]}")
-                response[analyst] = f"Error: {str(results[i])}"
-            else:
-                response[analyst] = results[i]
-
-        # Return formatted string with all analyst reports
-        output = []
-        output.append(f"=== Parallel Stock Analysis for {ticker} ===\n")
-        for analyst, result in response.items():
-            output.append(f"\n--- {analyst.replace('_', ' ').title()} ---")
-            if isinstance(result, list):
-                output.extend([str(r) for r in result])
-            else:
-                output.append(str(result))
-
-        return '\n'.join(output)
 
 
 async def convert_parts(parts: list[Part], tool_context: ToolContext):
