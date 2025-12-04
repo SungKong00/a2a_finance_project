@@ -67,6 +67,7 @@ root_agent = Agent(
                     command='uvx',
                     args=['yfmcp@latest'],
                 ),
+                timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
             ),
         )
     ],
