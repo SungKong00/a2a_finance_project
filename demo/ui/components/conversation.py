@@ -12,6 +12,7 @@ from state.state import AppState, StateMessage
 
 from .chat_bubble import chat_bubble
 from .form_render import form_sent, is_form, render_form
+from .stock_input import stock_input
 
 
 @me.stateclass
@@ -118,24 +119,5 @@ def conversation():
             else:
                 chat_bubble(message, message.message_id)
 
-        with me.box(
-            style=me.Style(
-                display='flex',
-                flex_direction='row',
-                gap=5,
-                align_items='center',
-                min_width=500,
-                width='100%',
-            )
-        ):
-            me.input(
-                label='How can I help you?',
-                on_blur=on_blur,
-                on_enter=send_message_enter,
-                style=me.Style(min_width='80vw'),
-            )
-            with me.content_button(
-                type='flat',
-                on_click=send_message_button,
-            ):
-                me.icon(icon='send')
+        # Stock-specific input component
+        stock_input()

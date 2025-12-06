@@ -69,6 +69,17 @@ class StateEvent:
     )
 
 
+@dataclass
+class StockAnalysis:
+    """Structured stock analysis data from 4 agents."""
+
+    ticker: str = ''
+    technical: dict[str, Any] = dataclasses.field(default_factory=dict)
+    fundamental: dict[str, Any] = dataclasses.field(default_factory=dict)
+    sentiment: dict[str, Any] = dataclasses.field(default_factory=dict)
+    risk: dict[str, Any] = dataclasses.field(default_factory=dict)
+
+
 @me.stateclass
 class AppState:
     """Mesop Application State"""
@@ -94,6 +105,21 @@ class AppState:
     api_key: str = ''
     uses_vertex_ai: bool = False
     api_key_dialog_open: bool = False
+
+    # Stock analysis UI state
+    current_analysis: StockAnalysis = dataclasses.field(
+        default_factory=StockAnalysis
+    )
+    recent_searches: list[str] = dataclasses.field(default_factory=list)
+    analysis_card_expanded: dict[str, bool] = dataclasses.field(
+        default_factory=lambda: {
+            'technical': False,
+            'fundamental': False,
+            'sentiment': False,
+            'risk': False,
+        }
+    )
+    stock_input_value: str = ''
 
 
 @me.stateclass
