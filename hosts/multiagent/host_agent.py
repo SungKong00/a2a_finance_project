@@ -105,6 +105,7 @@ class HostAgent:
             tools=[
                 self.list_remote_agents,
                 self.send_message,
+                self.send_messages_parallel,
             ],
         )
 
@@ -127,30 +128,46 @@ class HostAgent:
 3. **sentiment_analyst**: News sentiment, analyst ratings, market mood, social media buzz, upcoming catalysts
 4. **risk_assessor**: Volatility, beta, VIX context, maximum drawdown, portfolio fit, position sizing
 
-**Stock Analysis Workflow:**
+**Stock Analysis Workflow (PARALLEL EXECUTION - FAST):**
 
-When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 주가 분석해줘"):
+When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 주가 분석해줘", "코어위브 분석해줘"):
 
-1. **Identify the stock ticker** from the user's request
-   - **IMPORTANT: For Korean stocks, use the correct Yahoo Finance ticker format:**
-     - 삼성전자 → 005930.KS (NOT SMSN.IL)
+1. **Determine the stock ticker:**
+
+   **OPTION A - User provides a ticker symbol directly:**
+   - If user provides a clear ticker (AAPL, TSLA, 005930.KS, etc.), use it directly
+
+   **OPTION B - User provides a company name (PREFERRED APPROACH):**
+   - **ALWAYS try to identify the most likely ticker from the company name first**
+   - Use your knowledge to map common company names to tickers:
+     - Apple, 애플 → AAPL
+     - Microsoft, 마이크로소프트 → MSFT
+     - Tesla, 테슬라 → TSLA
+     - Google, Alphabet, 구글 → GOOGL
+     - 삼성전자 → 005930.KS
      - SK하이닉스 → 000660.KS
-     - NAVER → 035420.KS
+     - NAVER, 네이버 → 035420.KS
      - 카카오 → 035720.KS
      - 현대차 → 005380.KS
-   - For US stocks: Use standard tickers (AAPL, TSLA, MSFT, GOOGL, etc.)
-   - If unsure, default to .KS suffix for Korean stocks
+     - CoreWeave, 코어위브 → CRWV
+     - Nvidia, 엔비디아 → NVDA
+     - AMD → AMD
 
-2. **Query each specialized analyst** using the `send_message` tool:
-   - `send_message(analyst_name="technical_analyst", message="Analyze [TICKER] stock")`
-   - `send_message(analyst_name="fundamental_analyst", message="Analyze [TICKER] stock")`
-   - `send_message(analyst_name="sentiment_analyst", message="Analyze [TICKER] stock")`
-   - `send_message(analyst_name="risk_assessor", message="Analyze [TICKER] stock")`
-   - Each analyst will independently fetch data and perform their specialized analysis
+   **IMPORTANT TICKER FORMAT RULES:**
+   - **Korean stocks (KOSPI/KOSDAQ)**: ALWAYS add `.KS` suffix (e.g., 005930.KS)
+   - **US stocks (NYSE/NASDAQ)**: Use ticker without suffix (e.g., AAPL, CRWV)
+   - **If unsure about the exact ticker**: Make your best educated guess based on the company name
+   - **For Korean company names in English**: Search for the Korean ticker equivalent
 
-3. **Collect all 4 reports** - Wait for each analyst to complete their analysis
+2. **USE PARALLEL ANALYSIS** with `send_messages_parallel(ticker)`:
+   - **ALWAYS use `send_messages_parallel(ticker="TICKER")` for stock analysis**
+   - This tool queries all 4 analysts (technical, fundamental, sentiment, risk) simultaneously
+   - Much faster than calling each analyst individually (~13s vs ~40s)
+   - Example: `send_messages_parallel(ticker="AAPL")` or `send_messages_parallel(ticker="005930.KS")`
 
-4. **Synthesize findings in Korean (한국어)** - Combine insights into a comprehensive investment recommendation
+3. **Synthesize findings in Korean (한국어)** - Combine insights into a comprehensive investment recommendation
+
+**IMPORTANT: Do NOT use send_message 4 times sequentially. ALWAYS use send_messages_parallel for complete stock analysis.**
 
 **Synthesis Guidelines (한국어로 작성):**
 - 경영 요약(Executive Summary)으로 시작
@@ -230,7 +247,8 @@ When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 �
 - Use `list_remote_agents` to see available analysts
 
 **Execution:**
-- Use `send_message(agent_name, message)` to delegate tasks
+- **For stock analysis: Use `send_messages_parallel(ticker)` to query all 4 analysts at once (RECOMMENDED - 3x faster)**
+- For individual queries: Use `send_message(agent_name, message)` to delegate tasks to a single agent
 
 Available Agents:
 {self.agents}
@@ -364,6 +382,127 @@ Current agent: {current_agent['active_agent']}
                     await convert_parts(artifact.parts, tool_context)
                 )
         return response
+
+    async def send_messages_parallel(
+        self, ticker: str, tool_context: ToolContext
+    ) -> dict:
+        """Query all 4 stock analysis agents in parallel for faster analysis.
+
+        This tool sends the same analysis request to all 4 specialized analysts
+        (technical, fundamental, sentiment, risk) simultaneously using asyncio.gather(),
+        reducing total analysis time from ~40 seconds to ~13 seconds.
+
+        Args:
+            ticker: Stock ticker symbol (e.g., "AAPL", "005930.KS" for Samsung)
+            tool_context: The tool context this method runs in.
+
+        Returns:
+            A dictionary containing all 4 analyst reports with agent names as keys.
+        """
+        agent_names = [
+            "technical_analyst",
+            "fundamental_analyst",
+            "sentiment_analyst",
+            "risk_assessor"
+        ]
+
+        # Verify all agents are available
+        missing_agents = [name for name in agent_names if name not in self.remote_agent_connections]
+        if missing_agents:
+            raise ValueError(f"Missing agents: {missing_agents}. Available: {list(self.remote_agent_connections.keys())}")
+
+        state = tool_context.state
+        context_id = state.get('context_id', None)
+        message = f"Analyze {ticker} stock"
+
+        async def query_agent(agent_name: str) -> tuple[str, list]:
+            """Query a single agent and return (agent_name, response) with retry logic."""
+            max_retries = 3
+            base_delay = 2  # Start with 2 seconds
+
+            for attempt in range(max_retries):
+                try:
+                    client = self.remote_agent_connections[agent_name]
+                    request_message = Message(
+                        role=Role.user,
+                        parts=[Part(root=TextPart(text=message))],
+                        message_id=str(uuid.uuid4()),
+                        context_id=context_id,
+                        task_id=None,
+                    )
+
+                    print(f"[Parallel] Querying {agent_name}... (attempt {attempt + 1}/{max_retries})")
+                    response = await client.send_message(request_message)
+                    print(f"[Parallel] {agent_name} completed")
+
+                    # Process response
+                    if isinstance(response, Message):
+                        parts = await convert_parts(response.parts, tool_context)
+                        return (agent_name, parts)
+                    elif isinstance(response, Task):
+                        parts = []
+                        if response.status.message:
+                            parts = await convert_parts(response.status.message.parts, tool_context)
+                        if response.artifacts:
+                            for artifact in response.artifacts:
+                                parts.extend(await convert_parts(artifact.parts, tool_context))
+                        return (agent_name, parts)
+                    else:
+                        return (agent_name, [str(response)])
+
+                except Exception as e:
+                    error_str = str(e)
+                    is_retryable = ("429" in error_str or
+                                  "ResourceExhausted" in error_str or
+                                  "RESOURCE_EXHAUSTED" in error_str or
+                                  "Timed out" in error_str or
+                                  "timeout" in error_str.lower())
+
+                    if is_retryable and attempt < max_retries - 1:
+                        # Exponential backoff: 2^attempt * base_delay (2s, 4s, 8s)
+                        delay = (2 ** attempt) * base_delay
+                        print(f"[Parallel] {agent_name} failed (attempt {attempt + 1}): {error_str}")
+                        print(f"[Parallel] Retrying {agent_name} in {delay} seconds...")
+                        await asyncio.sleep(delay)
+                        continue
+                    else:
+                        # Last attempt or non-retryable error
+                        print(f"[Parallel] {agent_name} failed permanently: {e}")
+                        error_msg = f"Error from {agent_name}: {error_str}"
+                        if "429" in error_str or "ResourceExhausted" in error_str or "RESOURCE_EXHAUSTED" in error_str:
+                            error_msg = f"API Quota Exhausted for {agent_name} (after {max_retries} attempts)"
+                        elif "Timed out" in error_str or "timeout" in error_str.lower():
+                            error_msg = f"Timeout from {agent_name} (after {max_retries} attempts)"
+
+                        mock_json = {
+                            "ticker": ticker,
+                            "error": True,
+                            "analysis_content": f"**[ERROR]** {error_msg}"
+                        }
+                        return (agent_name, [json.dumps(mock_json, ensure_ascii=False)])
+
+        # Execute all 4 queries in parallel
+        print(f"[Parallel] Starting parallel analysis for {ticker}...")
+        tasks = [query_agent(name) for name in agent_names]
+        results = await asyncio.gather(*tasks)
+        print(f"[Parallel] All agents completed for {ticker}")
+
+        # Aggregate results into a structured dictionary
+        aggregated = {}
+        for agent_name, response_parts in results:
+            # Join all parts into a single string for each agent
+            if response_parts:
+                aggregated[agent_name] = "\n".join(str(part) for part in response_parts)
+            else:
+                aggregated[agent_name] = f"No response from {agent_name}"
+
+        # Return as a formatted string that the LLM can easily parse
+        result_text = f"## Parallel Analysis Results for {ticker}\n\n"
+        for agent_name in agent_names:
+            result_text += f"### {agent_name.replace('_', ' ').title()}\n"
+            result_text += aggregated.get(agent_name, "No data") + "\n\n"
+
+        return result_text
 
 
 async def convert_parts(parts: list[Part], tool_context: ToolContext):
