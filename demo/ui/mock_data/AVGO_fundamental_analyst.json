@@ -1,0 +1,6 @@
+{
+  "ticker": "AVGO",
+  "agent_name": "fundamental_analyst",
+  "timestamp": "2025-12-08T01:46:30.694154",
+  "response": "{\"ticker\": \"AVGO\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 100.06, \"pb_ratio\": 6.59, \"market_cap\": 1842855673856, \"revenue_growth\": 0.164, \"roe\": 0.27083, \"recommendation\": \"적극 매수\", \"summary\": \"브로드컴(AVGO)은 현재 높은 주가수익비율(P/E)과 주가순자산비율(P/B)을 보이지만, 16.4%의 견고한 매출 성장과 27.08%의 높은 자기자본이익률(ROE)을 기록하고 있습니다. 애널리스트들은 회사의 강력한 성장 잠재력을 바탕으로 '적극 매수'를 권고하며, 현재 가격은 미래 성장을 감안할 때 적정하다고 평가됩니다.\"}"
+}

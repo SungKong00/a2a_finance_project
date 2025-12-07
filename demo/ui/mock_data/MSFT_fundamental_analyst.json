@@ -1,0 +1,6 @@
+{
+  "ticker": "MSFT",
+  "agent_name": "fundamental_analyst",
+  "timestamp": "2025-12-08T01:42:26.848759",
+  "response": "{\"ticker\": \"MSFT\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 34.36, \"pb_ratio\": 9.89, \"market_cap\": 3591408713728, \"revenue_growth\": 0.184, \"roe\": 0.322, \"recommendation\": \"적극 매수\", \"summary\": \"Microsoft Corporation은 전 세계적으로 소프트웨어, 서비스, 장치 및 솔루션을 개발하고 지원합니다. 이 회사는 강력한 재무 성과와 애널리스트들의 높은 평가를 바탕으로 견고한 성장세를 보이고 있습니다.\"}"
+}

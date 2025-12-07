@@ -74,10 +74,16 @@ class StockAnalysis:
     """Structured stock analysis data from 4 agents."""
 
     ticker: str = ''
+    company_name: str = ''
     technical: dict[str, Any] = dataclasses.field(default_factory=dict)
     fundamental: dict[str, Any] = dataclasses.field(default_factory=dict)
     sentiment: dict[str, Any] = dataclasses.field(default_factory=dict)
     risk: dict[str, Any] = dataclasses.field(default_factory=dict)
+    recommendation: str = ''
+    summary: str = ''
+    confidence: float = 0.0
+    is_loading: bool = False
+    error: str = ''
 
 
 @me.stateclass
@@ -85,7 +91,7 @@ class AppState:
     """Mesop Application State"""
 
     sidenav_open: bool = False
-    theme_mode: Literal['system', 'light', 'dark'] = 'system'
+    theme_mode: Literal['system', 'light', 'dark'] = 'dark'
 
     current_conversation_id: str = ''
     conversations: list[StateConversation]

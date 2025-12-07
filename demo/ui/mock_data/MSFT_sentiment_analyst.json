@@ -1,0 +1,6 @@
+{
+  "ticker": "MSFT",
+  "agent_name": "sentiment_analyst",
+  "timestamp": "2025-12-08T01:42:26.848871",
+  "response": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}"
+}

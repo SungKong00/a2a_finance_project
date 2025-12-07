@@ -1,0 +1,6 @@
+{
+  "ticker": "AAPL",
+  "agent_name": "technical_analyst",
+  "timestamp": "2025-12-07T21:47:27.735714",
+  "response": "Tool 'get_technical_indicators' not found.\nAvailable tools: get_ticker_info, get_ticker_news, search, get_top, get_price_history\n\nPossible causes:\n  1. LLM hallucinated the function name - review agent instruction clarity\n  2. Tool not registered - verify agent.tools list\n  3. Name mismatch - check for typos\n\nSuggested fixes:\n  - Review agent instruction to ensure tool usage is clear\n  - Verify tool is included in agent.tools list\n  - Check for typos in function name"
+}

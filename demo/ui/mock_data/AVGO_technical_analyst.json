@@ -1,0 +1,6 @@
+{
+  "ticker": "AVGO",
+  "agent_name": "technical_analyst",
+  "timestamp": "2025-12-08T01:46:30.693866",
+  "response": "{\"ticker\": \"AVGO\", \"current_price\": 390.24, \"trend\": \"강세\", \"rsi\": 62.5, \"macd_signal\": \"골든크로스\", \"support_levels\": [370.0, 350.0], \"resistance_levels\": [400.0, 410.0], \"summary\": \"Broadcom Inc. (AVGO)는 견조한 강세 추세를 보이고 있으며, RSI는 62.5로 과매수 구간 직전입니다. MACD 지표는 골든크로스를 나타내며 이는 상승 모멘텀의 강화를 시사합니다. 주요 지지선은 370달러와 350달러이며, 저항선은 400달러와 410달러입니다. 회사는 반도체 및 인프라 소프트웨어 솔루션을 제공하며, 견고한 재무 성과와 성장 전망을 바탕으로 긍정적인 기술적 분석을 받고 있습니다.\"}\n"
+}

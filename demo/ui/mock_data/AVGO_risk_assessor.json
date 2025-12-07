@@ -1,0 +1,6 @@
+{
+  "ticker": "AVGO",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-08T01:46:30.694832",
+  "response": "{\"ticker\": \"AVGO\", \"risk_level\": \"보통\", \"beta\": 1.204, \"volatility\": 0.28, \"max_drawdown\": -0.15, \"sharpe_ratio\": 1.2, \"summary\": \"AVGO 주식은 1.204의 베타 값으로 시장보다 높은 변동성을 보이며 보통 수준의 리스크를 가지고 있습니다. 과거 최대 하락률은 -15%였으나, 1.2의 샤프 비율은 리스크 대비 양호한 수익률을 나타냅니다.\"}"
+}

@@ -8,18 +8,6 @@ echo ""
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_ROOT"
 
-# Check if GOOGLE_API_KEY is set
-if [ -z "$GOOGLE_API_KEY" ]; then
-    if [ -f "demo/ui/.env" ]; then
-        export $(cat demo/ui/.env | grep -v '^#' | xargs)
-        echo "✅ Loaded API key from demo/ui/.env"
-    else
-        echo "❌ Error: GOOGLE_API_KEY not found!"
-        echo "   Please create demo/ui/.env with: GOOGLE_API_KEY=your_key_here"
-        exit 1
-    fi
-fi
-
 # Kill existing processes
 echo ""
 echo "🧹 Cleaning up existing processes..."
@@ -27,11 +15,12 @@ pkill -f "uv run main.py" 2>/dev/null
 pkill -f "uvicorn agent:a2a_app" 2>/dev/null
 sleep 2
 
-# Start Technical Analyst Agent (Port 10101)
+# Start Technical Analyst Agent (Port 10101) - uses its own .env
 echo ""
 echo "🤖 Starting Technical Analyst Agent (Port 10101)..."
 cd "$PROJECT_ROOT/agents/technical_analyst"
-uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10101 > /tmp/technical_analyst.log 2>&1 &
+# Clear inherited GOOGLE_API_KEY so agent uses its own .env
+env -u GOOGLE_API_KEY uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10101 > /tmp/technical_analyst.log 2>&1 &
 TECH_PID=$!
 echo "   PID: $TECH_PID"
 sleep 5
@@ -45,11 +34,11 @@ else
     exit 1
 fi
 
-# Start Fundamental Analyst Agent (Port 10102)
+# Start Fundamental Analyst Agent (Port 10102) - uses its own .env
 echo ""
 echo "🤖 Starting Fundamental Analyst Agent (Port 10102)..."
 cd "$PROJECT_ROOT/agents/fundamental_analyst"
-uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10102 > /tmp/fundamental_analyst.log 2>&1 &
+env -u GOOGLE_API_KEY uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10102 > /tmp/fundamental_analyst.log 2>&1 &
 FUND_PID=$!
 echo "   PID: $FUND_PID"
 sleep 4
@@ -63,11 +52,11 @@ else
     exit 1
 fi
 
-# Start Sentiment Analyst Agent (Port 10103)
+# Start Sentiment Analyst Agent (Port 10103) - uses its own .env
 echo ""
 echo "🤖 Starting Sentiment Analyst Agent (Port 10103)..."
 cd "$PROJECT_ROOT/agents/sentiment_analyst"
-uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10103 > /tmp/sentiment_analyst.log 2>&1 &
+env -u GOOGLE_API_KEY uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10103 > /tmp/sentiment_analyst.log 2>&1 &
 SENT_PID=$!
 echo "   PID: $SENT_PID"
 sleep 4
@@ -81,11 +70,11 @@ else
     exit 1
 fi
 
-# Start Risk Assessor Agent (Port 10104)
+# Start Risk Assessor Agent (Port 10104) - uses its own .env
 echo ""
 echo "🤖 Starting Risk Assessor Agent (Port 10104)..."
 cd "$PROJECT_ROOT/agents/risk_assessor"
-uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10104 > /tmp/risk_assessor.log 2>&1 &
+env -u GOOGLE_API_KEY uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10104 > /tmp/risk_assessor.log 2>&1 &
 RISK_PID=$!
 echo "   PID: $RISK_PID"
 sleep 4

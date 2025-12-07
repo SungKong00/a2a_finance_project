@@ -13,6 +13,13 @@ from state.state import AppState, StateMessage
 from .chat_bubble import chat_bubble
 from .form_render import form_sent, is_form, render_form
 from .stock_input import stock_input
+from .stock_dashboard import (
+    stock_dashboard,
+    loading_dashboard,
+    empty_dashboard,
+    error_dashboard,
+)
+from styles.stock_styles import COLORS
 
 
 @me.stateclass
@@ -91,19 +98,86 @@ async def send_message_button(e: me.ClickEvent):  # pylint: disable=unused-argum
 
 @me.component
 def conversation():
-    """Conversation component"""
+    """Conversation component with dark theme stock dashboard"""
     page_state = me.state(PageState)
     app_state = me.state(AppState)
     if 'conversation_id' in me.query_params:
         page_state.conversation_id = me.query_params['conversation_id']
         app_state.current_conversation_id = page_state.conversation_id
-    with me.box(
-        style=me.Style(
-            display='flex',
-            justify_content='space-between',
-            flex_direction='column',
+
+    # Main container with dark theme
+    main_container_style = me.Style(
+        display='flex',
+        flex_direction='column',
+        min_height='100vh',
+        background=COLORS['background'],
+    )
+
+    with me.box(style=main_container_style):
+        # Stock input at the top
+        stock_input()
+
+        # Dashboard or chat messages
+        content_area_style = me.Style(
+            flex_grow=1,
+            padding=me.Padding.all(16),
         )
-    ):
+
+        with me.box(style=content_area_style):
+            analysis = app_state.current_analysis
+
+            # Calculate progress for loading state
+            progress = {
+                'technical': bool(analysis.technical),
+                'fundamental': bool(analysis.fundamental),
+                'sentiment': bool(analysis.sentiment),
+                'risk': bool(analysis.risk),
+            }
+
+            # Show dashboard if we have analysis data
+            if analysis.is_loading:
+                loading_dashboard(ticker=analysis.ticker, progress=progress)
+            elif analysis.error:
+                error_dashboard(analysis.error)
+            elif analysis.ticker and (
+                analysis.technical or
+                analysis.fundamental or
+                analysis.sentiment or
+                analysis.risk
+            ):
+                # Convert StockAnalysis to dict for dashboard
+                analysis_data = {
+                    'company_name': analysis.company_name,
+                    'technical': analysis.technical,
+                    'fundamental': analysis.fundamental,
+                    'sentiment': analysis.sentiment,
+                    'risk': analysis.risk,
+                    'recommendation': analysis.recommendation,
+                    'summary': analysis.summary,
+                    'confidence': analysis.confidence,
+                }
+                stock_dashboard(
+                    ticker=analysis.ticker,
+                    analysis_data=analysis_data,
+                    expanded_cards=app_state.analysis_card_expanded,
+                )
+            elif not app_state.messages:
+                # No messages and no analysis - show empty state
+                empty_dashboard()
+            else:
+                # Show chat messages as fallback
+                _render_chat_messages(app_state)
+
+
+def _render_chat_messages(app_state: AppState):
+    """Render traditional chat bubble messages."""
+    messages_container_style = me.Style(
+        display='flex',
+        flex_direction='column',
+        gap=12,
+    )
+
+    with me.box(style=messages_container_style):
         for message in app_state.messages:
             if is_form(message):
                 render_form(message, app_state)
@@ -118,6 +192,3 @@ def conversation():
                 )
             else:
                 chat_bubble(message, message.message_id)
-
-        # Stock-specific input component
-        stock_input()

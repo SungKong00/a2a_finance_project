@@ -30,7 +30,9 @@ from .state import (
     StateEvent,
     StateMessage,
     StateTask,
+    StockAnalysis,
 )
+from utils.json_parser import extract_json_from_response, identify_agent_type
 
 
 server_url = 'http://localhost:12000'
@@ -143,6 +145,8 @@ async def UpdateAppState(state: AppState, conversation_id: str):
                 state.messages = []
             else:
                 state.messages = [convert_message_to_state(x) for x in messages]
+                # Extract stock analysis from messages
+                _update_stock_analysis(state, state.messages)
         conversations = await ListConversations()
         if not conversations:
             state.conversations = []
@@ -161,9 +165,147 @@ async def UpdateAppState(state: AppState, conversation_id: str):
             )
         state.background_tasks = await GetProcessingMessages()
         state.message_aliases = GetMessageAliases()
+
+        # Update loading state based on background tasks
+        if state.background_tasks:
+            # Still processing
+            state.current_analysis.is_loading = True
+        elif state.current_analysis.is_loading:
+            # No more background tasks - stop loading regardless of data completeness
+            # (some agents may have returned errors, which is fine)
+            has_any_data = any([
+                state.current_analysis.technical,
+                state.current_analysis.fundamental,
+                state.current_analysis.sentiment,
+                state.current_analysis.risk,
+            ])
+            # Stop loading when background tasks are done
+            state.current_analysis.is_loading = False
+            print(f"[Loading] Completed. Has data: {has_any_data}")
     except Exception as e:
         print('Failed to update state: ', e)
         traceback.print_exc(file=sys.stdout)
+
+
+def _update_stock_analysis(state: AppState, messages: list[StateMessage]):
+    """Extract and update stock analysis from messages."""
+    # Track what we've found
+    found_data = {
+        'technical': None,
+        'fundamental': None,
+        'sentiment': None,
+        'risk': None,
+    }
+    ticker = None
+
+    print(f"[Analysis] Processing {len(messages)} messages...")
+
+    # Process messages in reverse to get most recent data
+    for message in reversed(messages):
+        print(f"[Analysis] Message role: '{message.role}'")
+        if message.role != 'agent':
+            continue
+
+        print(f"[Analysis] Agent message, content count: {len(message.content)}")
+
+        # First, concatenate ALL content parts into one string
+        # This handles cases where JSON is split across multiple parts
+        full_content = ""
+        for content_part, media_type in message.content:
+            print(f"[Analysis] Content type: {type(content_part).__name__}, media: {media_type}")
+            print(f"[Analysis] RAW CONTENT (first 500 chars): {str(content_part)[:500]}")
+            if isinstance(content_part, str):
+                full_content += content_part + "\n"
+            elif isinstance(content_part, dict):
+                # If already a dict, process it directly
+                json_data = content_part
+                if 'ticker' in json_data:
+                    agent_type = identify_agent_type(json_data)
+                    if agent_type and agent_type in found_data and not found_data[agent_type]:
+                        found_data[agent_type] = json_data
+                        print(f"[Analysis] Direct dict found, identified as: {agent_type}")
+                        if json_data.get('ticker') and not ticker:
+                            ticker = json_data['ticker']
+
+        # Now extract all JSON blocks from concatenated content
+        print(f"[Analysis] Full concatenated content length: {len(full_content)}")
+
+        # Try to extract multiple JSON blocks from the full content
+        import re
+        json_pattern = r'```json\s*([\s\S]*?)\s*```'
+        matches = re.findall(json_pattern, full_content)
+
+        if not matches:
+            # Also try without json tag
+            json_pattern2 = r'```\s*(\{[\s\S]*?\})\s*```'
+            matches = re.findall(json_pattern2, full_content)
+
+        print(f"[Analysis] Found {len(matches)} JSON blocks in full content")
+
+        for json_str in matches:
+            json_str = json_str.strip()
+            try:
+                import json as json_module
+                json_data = json_module.loads(json_str)
+            except:
+                # Try to fix common issues
+                json_str_fixed = json_str
+                # Fix 1: Remove trailing commas
+                json_str_fixed = re.sub(r',\s*([}\]])', r'\1', json_str_fixed)
+                # Fix 2: Replace single quotes with double quotes (Python dict -> JSON)
+                # But be careful not to replace quotes inside strings
+                json_str_fixed = json_str_fixed.replace("'", '"')
+                try:
+                    json_data = json_module.loads(json_str_fixed)
+                except:
+                    # Fix 3: Try ast.literal_eval for Python dict format
+                    try:
+                        import ast
+                        json_data = ast.literal_eval(json_str)
+                    except:
+                        print(f"[Analysis] Failed to parse JSON block: {json_str[:200]}...")
+                        continue
+
+            if not isinstance(json_data, dict):
+                continue
+
+            print(f"[Analysis] Found JSON with keys: {list(json_data.keys())[:5]}...")
+            print(f"[Analysis] JSON DATA: {json_data}")
+
+            agent_type = identify_agent_type(json_data)
+            print(f"[Analysis] Identified as: {agent_type}")
+
+            if agent_type and agent_type in found_data and not found_data[agent_type]:
+                found_data[agent_type] = json_data
+                if json_data.get('ticker') and not ticker:
+                    ticker = json_data['ticker']
+
+    print(f"[Analysis] Found data for: {[k for k, v in found_data.items() if v]}")
+
+    # Update state if we found any analysis data
+    if any(found_data.values()):
+        if ticker:
+            state.current_analysis.ticker = ticker
+        if found_data['technical']:
+            state.current_analysis.technical = found_data['technical']
+        if found_data['fundamental']:
+            state.current_analysis.fundamental = found_data['fundamental']
+        if found_data['sentiment']:
+            state.current_analysis.sentiment = found_data['sentiment']
+        if found_data['risk']:
+            state.current_analysis.risk = found_data['risk']
+
+        # Extract recommendation and summary from any agent
+        for data in found_data.values():
+            if data:
+                if data.get('recommendation') and not state.current_analysis.recommendation:
+                    state.current_analysis.recommendation = data['recommendation']
+                if data.get('summary') and not state.current_analysis.summary:
+                    state.current_analysis.summary = data['summary']
+                if data.get('confidence') and not state.current_analysis.confidence:
+                    state.current_analysis.confidence = float(data.get('confidence', 0))
+
+        print(f"[Analysis] Updated state with ticker={state.current_analysis.ticker}")
 
 
 async def UpdateApiKey(api_key: str):

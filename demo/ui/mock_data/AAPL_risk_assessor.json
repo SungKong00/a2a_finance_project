@@ -1,0 +1,6 @@
+{
+  "ticker": "AAPL",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-07T21:47:27.736098",
+  "response": "Timed out while waiting for response to ClientRequest. Waited 5.0 seconds."
+}

@@ -8,6 +8,7 @@ import uuid
 import httpx
 
 from a2a.client import A2ACardResolver, ClientConfig, ClientFactory
+from mock_responses import get_mock_manager, is_mock_mode
 from a2a.types import (
     AgentCard,
     DataPart,
@@ -22,7 +23,7 @@ from a2a.types import (
 from google.adk import Agent
 from google.adk.agents.callback_context import CallbackContext
 from google.adk.agents.readonly_context import ReadonlyContext
-from google.adk.models.lite_llm import LiteLlm
+from google.adk.models import Gemini
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 from remote_agent_connection import RemoteAgentConnections, TaskUpdateCallback
@@ -90,11 +91,10 @@ class HostAgent:
         self.agents = '\n'.join(agent_info)
 
     def create_agent(self) -> Agent:
-        LITELLM_MODEL = os.getenv(
-            'LITELLM_MODEL', 'gemini/gemini-2.0-flash-001'
-        )
+        # Use separate API key for host agent
+        host_api_key = os.getenv('GOOGLE_API_KEY_HOST', os.getenv('GOOGLE_API_KEY'))
         return Agent(
-            model=LiteLlm(model=LITELLM_MODEL),
+            model=Gemini(model='gemini-2.5-flash-lite', api_key=host_api_key),
             name='host_agent',
             instruction=self.root_instruction,
             before_model_callback=self.before_model_callback,
@@ -392,6 +392,9 @@ Current agent: {current_agent['active_agent']}
         (technical, fundamental, sentiment, risk) simultaneously using asyncio.gather(),
         reducing total analysis time from ~40 seconds to ~13 seconds.
 
+        MOCK MODE: Set USE_MOCK_RESPONSES=true to use cached responses instead of API calls.
+        Responses are automatically saved to mock_data/ directory for later replay.
+
         Args:
             ticker: Stock ticker symbol (e.g., "AAPL", "005930.KS" for Samsung)
             tool_context: The tool context this method runs in.
@@ -405,6 +408,24 @@ Current agent: {current_agent['active_agent']}
             "sentiment_analyst",
             "risk_assessor"
         ]
+
+        mock_manager = get_mock_manager()
+
+        # Check if we should use mock responses
+        if is_mock_mode():
+            print(f"[MOCK MODE] Loading cached responses for {ticker}...")
+            cached = mock_manager.load_full_analysis(ticker)
+
+            if cached:
+                # Return cached responses
+                result_text = f"## Parallel Analysis Results for {ticker} [CACHED]\n\n"
+                for agent_name in agent_names:
+                    result_text += f"### {agent_name.replace('_', ' ').title()}\n"
+                    result_text += cached.get(agent_name, "No cached data") + "\n\n"
+                print(f"[MOCK MODE] Successfully loaded cached responses for {ticker}")
+                return result_text
+            else:
+                print(f"[MOCK MODE] No cached data for {ticker}, falling back to real API...")
 
         # Verify all agents are available
         missing_agents = [name for name in agent_names if name not in self.remote_agent_connections]
@@ -495,6 +516,14 @@ Current agent: {current_agent['active_agent']}
                 aggregated[agent_name] = "\n".join(str(part) for part in response_parts)
             else:
                 aggregated[agent_name] = f"No response from {agent_name}"
+
+        # Save responses to mock data for future use (always save in real mode)
+        if not is_mock_mode():
+            print(f"[Parallel] Saving responses to mock_data/ for {ticker}...")
+            mock_manager.save_full_analysis(ticker, aggregated)
+            # Also save individual responses
+            for agent_name in agent_names:
+                mock_manager.save_response(ticker, agent_name, aggregated.get(agent_name, ""))
 
         # Return as a formatted string that the LLM can easily parse
         result_text = f"## Parallel Analysis Results for {ticker}\n\n"

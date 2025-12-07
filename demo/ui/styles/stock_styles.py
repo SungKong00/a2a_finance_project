@@ -9,39 +9,43 @@ import mesop as me
 
 
 # =============================================================================
-# COLOR PALETTE
+# COLOR PALETTE - DARK THEME
 # =============================================================================
 
 COLORS = {
     # Trend/Sentiment
-    'bullish': '#4CAF50',       # Green - upward
-    'bearish': '#F44336',       # Red - downward
-    'neutral': '#9E9E9E',       # Gray - neutral
+    'bullish': '#66BB6A',       # Green - upward (brighter for dark)
+    'bearish': '#EF5350',       # Red - downward
+    'neutral': '#BDBDBD',       # Gray - neutral
 
     # Trading Recommendations
-    'strong_buy': '#1B5E20',    # Dark green
-    'buy': '#2196F3',           # Blue
-    'hold': '#FF9800',          # Orange
-    'sell': '#FF5722',          # Orange-red
-    'strong_sell': '#B71C1C',   # Dark red
+    'strong_buy': '#4CAF50',    # Green (brighter for dark)
+    'buy': '#42A5F5',           # Blue
+    'hold': '#FFA726',          # Orange
+    'sell': '#FF7043',          # Orange-red
+    'strong_sell': '#E53935',   # Red
 
     # Risk Levels
-    'low_risk': '#8BC34A',      # Light green
-    'moderate_risk': '#FFC107', # Yellow
-    'high_risk': '#FF5722',     # Orange
-    'very_high_risk': '#E91E63', # Pink
+    'low_risk': '#9CCC65',      # Light green
+    'moderate_risk': '#FFCA28', # Yellow
+    'high_risk': '#FF7043',     # Orange
+    'very_high_risk': '#EC407A', # Pink
 
     # Valuation
-    'undervalued': '#4CAF50',   # Green
-    'fairly_valued': '#2196F3', # Blue
-    'overvalued': '#F44336',    # Red
+    'undervalued': '#66BB6A',   # Green
+    'fairly_valued': '#42A5F5', # Blue
+    'overvalued': '#EF5350',    # Red
 
-    # UI Base
-    'card_border': '#E0E0E0',
-    'card_shadow': 'rgba(0,0,0,0.1)',
-    'text_primary': '#212121',
-    'text_secondary': '#757575',
-    'divider': '#EEEEEE',
+    # UI Base - Dark Theme
+    'background': '#121212',
+    'surface': '#1E1E1E',
+    'card_background': '#252525',
+    'card_border': '#333333',
+    'card_shadow': 'rgba(0,0,0,0.4)',
+    'text_primary': '#E0E0E0',
+    'text_secondary': '#9E9E9E',
+    'divider': '#333333',
+    'accent': '#BB86FC',
 }
 
 
@@ -53,42 +57,42 @@ def get_badge_color(value: str) -> str:
     """Get appropriate color for a badge value."""
     value_lower = value.lower() if value else ''
 
-    # Trend/Sentiment
-    if value_lower in ('bullish', 'positive'):
+    # Trend/Sentiment (English + Korean)
+    if value_lower in ('bullish', 'positive', '강세', '긍정', '긍정적'):
         return COLORS['bullish']
-    if value_lower in ('bearish', 'negative'):
+    if value_lower in ('bearish', 'negative', '약세', '부정', '부정적'):
         return COLORS['bearish']
-    if value_lower in ('neutral',):
+    if value_lower in ('neutral', '중립', '보합'):
         return COLORS['neutral']
 
-    # Recommendations
-    if value_lower in ('strong buy', 'strong_buy', 'strongbuy'):
+    # Recommendations (English + Korean)
+    if value_lower in ('strong buy', 'strong_buy', 'strongbuy', '적극 매수', '적극매수'):
         return COLORS['strong_buy']
-    if value_lower in ('buy',):
+    if value_lower in ('buy', '매수'):
         return COLORS['buy']
-    if value_lower in ('hold',):
+    if value_lower in ('hold', '보유', '중립'):
         return COLORS['hold']
-    if value_lower in ('sell',):
+    if value_lower in ('sell', '매도'):
         return COLORS['sell']
-    if value_lower in ('strong sell', 'strong_sell', 'strongsell'):
+    if value_lower in ('strong sell', 'strong_sell', 'strongsell', '적극 매도', '적극매도'):
         return COLORS['strong_sell']
 
-    # Risk
-    if value_lower in ('low', 'low risk'):
+    # Risk (English + Korean)
+    if value_lower in ('low', 'low risk', '낮음', '저위험'):
         return COLORS['low_risk']
-    if value_lower in ('moderate', 'moderate risk', 'medium'):
+    if value_lower in ('moderate', 'moderate risk', 'medium', '보통', '중간'):
         return COLORS['moderate_risk']
-    if value_lower in ('high', 'high risk'):
+    if value_lower in ('high', 'high risk', '높음', '고위험'):
         return COLORS['high_risk']
-    if value_lower in ('very high', 'very_high', 'veryhigh', 'very high risk'):
+    if value_lower in ('very high', 'very_high', 'veryhigh', 'very high risk', '매우 높음', '매우높음', '초고위험'):
         return COLORS['very_high_risk']
 
-    # Valuation
-    if value_lower in ('undervalued',):
+    # Valuation (English + Korean)
+    if value_lower in ('undervalued', '저평가'):
         return COLORS['undervalued']
-    if value_lower in ('fairly valued', 'fairly_valued', 'fairlyvalued', 'fair'):
+    if value_lower in ('fairly valued', 'fairly_valued', 'fairlyvalued', 'fair', '적정가', '적정'):
         return COLORS['fairly_valued']
-    if value_lower in ('overvalued',):
+    if value_lower in ('overvalued', '고평가'):
         return COLORS['overvalued']
 
     return COLORS['neutral']
@@ -102,10 +106,13 @@ STOCK_INPUT_CONTAINER_STYLE = me.Style(
     display='flex',
     flex_direction='column',
     gap=12,
-    padding=me.Padding.all(16),
-    background=me.theme_var('surface'),
+    padding=me.Padding.all(20),
+    background=COLORS['surface'],
     border_radius=12,
     margin=me.Margin(bottom=16),
+    border=me.Border.all(
+        me.BorderSide(width=1, color=COLORS['card_border'], style='solid')
+    ),
 )
 
 STOCK_INPUT_ROW_STYLE = me.Style(
@@ -133,18 +140,20 @@ RECENT_SEARCHES_STYLE = me.Style(
 
 SEARCH_CHIP_STYLE = me.Style(
     padding=me.Padding(top=4, bottom=4, left=12, right=12),
-    background='#E3F2FD',
+    background='#2D3748',
     border_radius=16,
     font_size=14,
     cursor='pointer',
+    color=COLORS['text_primary'],
 )
 
 SEARCH_CHIP_HOVER_STYLE = me.Style(
     padding=me.Padding(top=4, bottom=4, left=12, right=12),
-    background='#BBDEFB',
+    background='#4A5568',
     border_radius=16,
     font_size=14,
     cursor='pointer',
+    color=COLORS['text_primary'],
 )
 
 HINT_TEXT_STYLE = me.Style(
@@ -332,7 +341,7 @@ GAUGE_LABEL_ROW_STYLE = me.Style(
 
 GAUGE_TRACK_STYLE = me.Style(
     height=8,
-    background='#E0E0E0',
+    background='#333333',
     border_radius=4,
     overflow='hidden',
 )

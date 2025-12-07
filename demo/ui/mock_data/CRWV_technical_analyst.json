@@ -1,0 +1,6 @@
+{
+  "ticker": "CRWV",
+  "agent_name": "technical_analyst",
+  "timestamp": "2025-12-08T00:18:08.593924",
+  "response": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}"
+}
