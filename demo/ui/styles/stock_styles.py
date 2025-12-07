@@ -363,26 +363,22 @@ def gauge_fill_style(percentage: float, color: str) -> me.Style:
 
 CARD_CONFIG = {
     'technical': {
-        'title': 'Technical Analysis',
-        'title_kr': '기술적 분석',
+        'title': '기술적 분석',
         'icon': 'show_chart',
         'color': '#2196F3',
     },
     'fundamental': {
-        'title': 'Fundamental Analysis',
-        'title_kr': '펀더멘털 분석',
+        'title': '펀더멘털 분석',
         'icon': 'assessment',
         'color': '#4CAF50',
     },
     'sentiment': {
-        'title': 'Market Sentiment',
-        'title_kr': '시장 심리',
+        'title': '시장 심리',
         'icon': 'mood',
         'color': '#FF9800',
     },
     'risk': {
-        'title': 'Risk Assessment',
-        'title_kr': '리스크 평가',
+        'title': '리스크 평가',
         'icon': 'warning',
         'color': '#F44336',
     },

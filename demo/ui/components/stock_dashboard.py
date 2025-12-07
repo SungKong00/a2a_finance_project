@@ -152,7 +152,7 @@ def _render_analysis_grid(data: Dict[str, Any], expanded_cards: Dict[str, bool])
     )
 
     with me.box(style=grid_style):
-        # Technical Analysis
+        # 기술적 분석
         if 'technical' in data:
             analysis_card(
                 card_type='technical',
@@ -160,7 +160,7 @@ def _render_analysis_grid(data: Dict[str, Any], expanded_cards: Dict[str, bool])
                 expanded=expanded_cards.get('technical', False),
             )
 
-        # Fundamental Analysis
+        # 펀더멘털 분석
         if 'fundamental' in data:
             analysis_card(
                 card_type='fundamental',
@@ -168,7 +168,7 @@ def _render_analysis_grid(data: Dict[str, Any], expanded_cards: Dict[str, bool])
                 expanded=expanded_cards.get('fundamental', False),
             )
 
-        # Sentiment Analysis
+        # 시장 심리
         if 'sentiment' in data:
             analysis_card(
                 card_type='sentiment',
@@ -176,7 +176,7 @@ def _render_analysis_grid(data: Dict[str, Any], expanded_cards: Dict[str, bool])
                 expanded=expanded_cards.get('sentiment', False),
             )
 
-        # Risk Assessment
+        # 리스크 평가
         if 'risk' in data:
             analysis_card(
                 card_type='risk',
@@ -294,10 +294,10 @@ def loading_dashboard(ticker: str = '', progress: dict = None):
 
         # Progress indicators for each agent
         agents = [
-            ('technical', 'Technical Analysis', 'show_chart'),
-            ('fundamental', 'Fundamental Analysis', 'assessment'),
-            ('sentiment', 'Market Sentiment', 'mood'),
-            ('risk', 'Risk Assessment', 'warning'),
+            ('technical', '기술적 분석', 'show_chart'),
+            ('fundamental', '펀더멘털 분석', 'assessment'),
+            ('sentiment', '시장 심리', 'mood'),
+            ('risk', '리스크 평가', 'warning'),
         ]
 
         progress_container = me.Style(
