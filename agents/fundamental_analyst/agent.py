@@ -26,40 +26,20 @@ load_dotenv()
 # Create the Fundamental Analyst agent
 root_agent = Agent(
     name='fundamental_analyst',
-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+    model=Gemini(model='gemini-2.5-flash'),
     description='Expert fundamental analyst specializing in financial statements, valuation metrics, and company analysis',
-    instruction="""You are an expert Fundamental Analyst for stock markets.
+    instruction="""펀더멘털 분석가. 주식의 재무 건전성과 밸류에이션을 분석합니다.
 
-    **Your Goal**: Analyze the financial health, valuation, and growth prospects of a given stock ticker.
+도구: get_ticker_info
 
-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch financial data.
-    - Use `get_stock_data` to find P/E ratio, market cap, financial metrics.
-    - Use `get_financial_statements` to analyze income statement, balance sheet, cash flow.
-
-    **Analysis Framework**:
-    1. **Valuation**: Is the stock overvalued or undervalued? (P/E, P/B, PEG ratios).
-    2. **Financial Health**: Strong balance sheet? (Debt-to-Equity, Current Ratio, Cash reserves).
-    3. **Growth**: Revenue and earnings growth trends (YoY, QoQ).
-    4. **Profitability**: ROE, ROA, Operating Margin, Net Margin.
-
-    **Output Format**:
-    Provide a detailed fundamental analysis report in markdown format.
-
-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
-    ```json
-    {
-      "ticker": "string",
-      "valuation": "Undervalued" | "Fairly Valued" | "Overvalued",
-      "pe_ratio": float,
-      "revenue_growth_yoy": float,
-      "roe": float,
-      "debt_to_equity": float,
-      "recommendation": "Strong Buy" | "Buy" | "Hold" | "Sell" | "Strong Sell",
-      "analysis_content": "string (Your full markdown analysis report goes here)"
-    }
-    ```
-    Ensure the `analysis_content` field contains the complete text of your analysis.
-    """,
+JSON만 응답:
+```json
+{"ticker":"AAPL","valuation_verdict":"적정가","pe_ratio":28.5,"pb_ratio":45.2,"market_cap":2850000000000,"revenue_growth":0.08,"roe":0.147,"recommendation":"매수","summary":"분석 요약 2문장"}
+```
+- valuation_verdict: 저평가/적정가/고평가
+- recommendation: 적극 매수/매수/보유/매도/적극 매도
+- summary: 한국어 2문장
+""",
     tools=[
         McpToolset(
             connection_params=StdioConnectionParams(
@@ -67,7 +47,7 @@ root_agent = Agent(
                     command='uvx',
                     args=['yfmcp@latest'],
                 ),
-                timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+                timeout_seconds=60,  # Increase timeout for Yahoo Finance API calls
             ),
         )
     ],

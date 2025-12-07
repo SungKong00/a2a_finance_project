@@ -144,7 +144,7 @@ class HTTPXClientWrapper:
 
     def start(self):
         """Instantiate the client. Call from the FastAPI startup hook."""
-        self.async_client = httpx.AsyncClient(timeout=30)
+        self.async_client = httpx.AsyncClient(timeout=90)
 
     async def stop(self):
         """Gracefully shutdown. Call from FastAPI shutdown hook."""

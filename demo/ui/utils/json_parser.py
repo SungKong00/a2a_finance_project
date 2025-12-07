@@ -75,20 +75,37 @@ def identify_agent_type(json_data: dict[str, Any]) -> str | None:
     if not json_data:
         return None
 
-    # Technical Analyst markers
-    if 'rsi' in json_data or 'macd' in json_data or 'support_levels' in json_data:
+    # Check for error responses - try to identify by error message content
+    if 'error' in json_data:
+        error_msg = str(json_data.get('error', ''))
+        if 'get_technical_indicators' in error_msg:
+            return 'technical'
+        if 'get_financial_statements' in error_msg:
+            return 'fundamental'
+        if 'get_stock_data' in error_msg:
+            return 'risk'
+        # If generic error, return None
+        return None
+
+    # Technical Analyst markers (rsi, macd_signal, support_levels, resistance_levels)
+    technical_markers = {'rsi', 'macd_signal', 'support_levels', 'resistance_levels', 'trend', 'current_price'}
+    if technical_markers & set(json_data.keys()):
         return 'technical'
 
-    # Fundamental Analyst markers
-    if 'pe_ratio' in json_data or 'roe' in json_data or 'valuation' in json_data:
+    # Fundamental Analyst markers (pe_ratio, pb_ratio, roe, valuation_verdict)
+    fundamental_markers = {'pe_ratio', 'pb_ratio', 'roe', 'valuation_verdict', 'revenue_growth', 'market_cap'}
+    if fundamental_markers & set(json_data.keys()):
         return 'fundamental'
 
-    # Sentiment Analyst markers
-    if 'sentiment_score' in json_data or 'sentiment_verdict' in json_data:
+    # Sentiment Analyst markers (sentiment_score, sentiment_verdict, analyst_consensus)
+    # Also check for alternative format: market_sentiment, analyst_ratings
+    sentiment_markers = {'sentiment_score', 'sentiment_verdict', 'analyst_consensus', 'top_headlines', 'market_sentiment', 'analyst_ratings'}
+    if sentiment_markers & set(json_data.keys()):
         return 'sentiment'
 
-    # Risk Assessor markers
-    if 'risk_level' in json_data or 'beta' in json_data or 'sharpe_ratio' in json_data:
+    # Risk Assessor markers (risk_level, beta, sharpe_ratio, volatility, max_drawdown)
+    risk_markers = {'risk_level', 'beta', 'sharpe_ratio', 'volatility', 'max_drawdown'}
+    if risk_markers & set(json_data.keys()):
         return 'risk'
 
     return None

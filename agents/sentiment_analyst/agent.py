@@ -27,38 +27,19 @@ load_dotenv()
 # Create the Sentiment Analyst agent
 root_agent = Agent(
     name='sentiment_analyst',
-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+    model=Gemini(model='gemini-2.5-flash'),
     description='Expert sentiment analyst specializing in news analysis, analyst ratings, and market mood',
-    instruction="""You are an expert Sentiment Analyst for stock markets.
+    instruction="""감성 분석가. 주식의 시장 심리와 뉴스를 분석합니다.
 
-    **Your Goal**: Analyze the market sentiment, news, and analyst ratings for a given stock ticker.
+도구: get_ticker_news, get_ticker_info
 
-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch news and analyst data.
-    - Use `get_news` to find recent headlines and articles.
-    - Use `get_stock_data` to find analyst recommendations (buy/sell/hold).
+**반드시 아래 JSON 형식으로만 응답. 다른 텍스트 금지:**
+```json
+{"ticker":"AAPL","sentiment_score":7.5,"sentiment_verdict":"강세","analyst_consensus":"매수 75%, 보유 20%, 매도 5%","top_headlines":["뉴스1","뉴스2","뉴스3"],"summary":"분석 요약"}
+```
 
-    **Analysis Framework**:
-    1. **News Sentiment**: Are recent headlines positive, negative, or neutral?
-    2. **Analyst Ratings**: What do Wall Street analysts recommend? (Strong Buy, Buy, Hold, Sell).
-    3. **Market Mood**: Is the general market environment favoring this sector?
-    4. **Catalysts**: Are there upcoming events (earnings, product launches) driving sentiment?
-
-    **Output Format**:
-    Provide a detailed sentiment analysis report in markdown format.
-    
-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
-    ```json
-    {
-      "ticker": "string",
-      "sentiment_score": float,
-      "sentiment_verdict": "Bullish" | "Bearish" | "Neutral",
-      "analyst_consensus": "string",
-      "top_headlines": ["string"],
-      "analysis_content": "string (Your full markdown analysis report goes here)"
-    }
-    ```
-    Ensure the `analysis_content` field contains the complete text of your analysis.
-    """,
+필수 필드: ticker, sentiment_score(1-10), sentiment_verdict(강세/약세/중립), analyst_consensus, top_headlines(한국어 3개), summary(한국어)
+""",
     tools=[
         McpToolset(
             connection_params=StdioConnectionParams(
@@ -66,7 +47,7 @@ root_agent = Agent(
                     command='uvx',
                     args=['yfmcp@latest'],
                 ),
-                timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+                timeout_seconds=60,  # Increase timeout for Yahoo Finance API calls
             ),
         )
     ],

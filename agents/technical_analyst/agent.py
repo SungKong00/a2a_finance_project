@@ -25,40 +25,19 @@ load_dotenv()
 # Create the Technical Analyst agent
 root_agent = Agent(
     name='technical_analyst',
-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+    model=Gemini(model='gemini-2.5-flash-lite'),
     description='Expert technical analyst specializing in chart patterns, indicators, and price action analysis',
-    instruction="""You are an expert Technical Analyst for stock markets.
+    instruction="""기술적 분석가. 주식의 추세와 기술 지표를 분석합니다.
 
-    **Your Goal**: Analyze the price action, trends, and technical indicators of a given stock ticker.
+도구: get_price_history(period=1mo), get_ticker_info
 
-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch price history and technical data.
-    - Use `get_price_history` to see trends.
-    - Use `get_technical_indicators` (if available) or calculate them from price history.
+**반드시 아래 JSON 형식으로만 응답. 다른 텍스트 금지:**
+```json
+{"ticker":"AAPL","current_price":178.5,"trend":"강세","rsi":62.5,"macd_signal":"골든크로스","support_levels":[170,165],"resistance_levels":[185,190],"summary":"분석 요약"}
+```
 
-    **Analysis Framework**:
-    1. **Trend Analysis**: Identify the primary trend (Uptrend, Downtrend, Sideways) using Moving Averages (SMA/EMA).
-    2. **Momentum**: Check RSI (Relative Strength Index) and MACD (Moving Average Convergence Divergence).
-    3. **Support & Resistance**: Identify key price levels where the stock might bounce or break through.
-    4. **Chart Patterns**: Look for common patterns (Head & Shoulders, Double Top/Bottom, Flags, etc.).
-
-    **Output Format**:
-    Provide a detailed technical analysis report in markdown format.
-    
-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
-    ```json
-    {
-      "ticker": "string",
-      "current_price": float,
-      "trend": "Bullish" | "Bearish" | "Neutral",
-      "rsi": float,
-      "macd_signal": "string",
-      "support_levels": [float],
-      "resistance_levels": [float],
-      "analysis_content": "string (Your full markdown analysis report goes here)"
-    }
-    ```
-    Ensure the `analysis_content` field contains the complete text of your analysis.
-    """,
+필수 필드: ticker, current_price, trend(강세/약세/중립), rsi(0-100), macd_signal, support_levels, resistance_levels, summary(한국어)
+""",
     tools=[
         McpToolset(
             connection_params=StdioConnectionParams(
@@ -66,7 +45,7 @@ root_agent = Agent(
                     command='uvx',
                     args=['yfmcp@latest'],
                 ),
-                timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+                timeout_seconds=60,  # Increase timeout for Yahoo Finance API calls
             ),
         )
     ],
