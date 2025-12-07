@@ -140,20 +140,41 @@ def _render_metric_row(label: str, value: Any, color: Optional[str] = None):
     row_style = me.Style(
         display='flex',
         flex_direction='row',
-        justify_content='space-between',
+        justify_content='center',
+        gap=24,
         padding=me.Padding(top=6, bottom=6),
     )
 
     with me.box(style=row_style):
-        me.text(label, style=me.Style(
+        me.text(f"{label}:", style=me.Style(
             font_size=14,
             color=COLORS['text_secondary'],
+            min_width=120,
+            text_align='right',
         ))
         me.text(str(value), style=me.Style(
             font_size=14,
             font_weight='500',
             color=color or COLORS['text_primary'],
+            min_width=120,
         ))
+
+
+def _render_summary(data: Dict[str, Any]):
+    """Render summary/review section with markdown support."""
+    summary = data.get('summary') or data.get('analysis_content') or data.get('analysis')
+    if summary:
+        summary_style = me.Style(
+            margin=me.Margin(top=12),
+            padding=me.Padding.all(12),
+            background=COLORS['surface'],
+            border_radius=8,
+            font_size=13,
+            line_height='1.6',
+            color=COLORS['text_secondary'],
+        )
+        with me.box(style=summary_style):
+            me.markdown(summary)
 
 
 def _render_technical_metrics(data: Dict[str, Any]):
@@ -183,6 +204,9 @@ def _render_technical_metrics(data: Dict[str, Any]):
             if label == 'Trend':
                 color = get_badge_color(str(value))
             _render_metric_row(label, value, color)
+
+    # Render summary
+    _render_summary(data)
 
 
 def _render_fundamental_metrics(data: Dict[str, Any]):
@@ -221,6 +245,9 @@ def _render_fundamental_metrics(data: Dict[str, Any]):
             if label == 'Valuation':
                 color = get_badge_color(str(value))
             _render_metric_row(label, value, color)
+
+    # Render summary
+    _render_summary(data)
 
 
 def _render_sentiment_metrics(data: Dict[str, Any]):
@@ -264,6 +291,9 @@ def _render_sentiment_metrics(data: Dict[str, Any]):
                 line_height='1.5',
             ))
 
+    # Render summary
+    _render_summary(data)
+
 
 def _render_risk_metrics(data: Dict[str, Any]):
     """Render risk assessment metrics."""
@@ -295,6 +325,9 @@ def _render_risk_metrics(data: Dict[str, Any]):
             if label == 'Risk Level':
                 color = get_badge_color(str(value))
             _render_metric_row(label, value, color)
+
+    # Render summary
+    _render_summary(data)
 
 
 def _render_expand_section(
