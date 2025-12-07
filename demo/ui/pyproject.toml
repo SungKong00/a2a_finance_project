@@ -18,6 +18,7 @@ dependencies = [
     "google-adk[a2a]>=1.7.0",
     "litellm",
     "a2a-sample-client-multiagent",
+    "plotly>=6.5.0",
 ]
 
 [tool.hatch.build.targets.wheel]

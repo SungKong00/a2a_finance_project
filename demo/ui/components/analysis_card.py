@@ -2,7 +2,7 @@
 Analysis Card Component
 
 Displays individual analysis results (technical, fundamental, sentiment, risk)
-in a card format with expandable details.
+in a card format with expandable details and interactive charts.
 """
 
 import mesop as me
@@ -23,6 +23,15 @@ from styles.stock_styles import (
     get_badge_color,
     badge_style,
     BADGE_VALUE_STYLE,
+)
+
+from components.chart_components import (
+    rsi_gauge_chart,
+    support_resistance_chart,
+    valuation_bar_chart,
+    risk_gauge_chart,
+    risk_metrics_bar_chart,
+    sentiment_gauge_chart,
 )
 
 
@@ -178,109 +187,170 @@ def _render_summary(data: Dict[str, Any]):
 
 
 def _render_technical_metrics(data: Dict[str, Any]):
-    """Render technical analysis metrics."""
-    # Format support/resistance levels
+    """Render technical analysis metrics with charts."""
+    current_price = data.get('current_price')
+    rsi = data.get('rsi')
     support = data.get('support_levels', [])
     resistance = data.get('resistance_levels', [])
-    support_str = ', '.join(f'${v:,.0f}' for v in support[:2]) if support else 'N/A'
-    resistance_str = ', '.join(f'${v:,.0f}' for v in resistance[:2]) if resistance else 'N/A'
 
-    # Format current price
-    current_price = data.get('current_price')
-    price_str = f'${current_price:,.2f}' if current_price else 'N/A'
+    # Chart Section
+    chart_container = me.Style(
+        display='flex',
+        flex_direction='column',
+        gap=16,
+        margin=me.Margin(bottom=16),
+    )
 
-    metrics = [
-        ('Trend', data.get('trend', 'N/A')),
-        ('Current Price', price_str),
-        ('RSI', data.get('rsi', 'N/A')),
-        ('MACD Signal', data.get('macd_signal', 'N/A')),
-        ('Support', support_str),
-        ('Resistance', resistance_str),
-    ]
+    with me.box(style=chart_container):
+        # RSI Gauge Chart
+        if rsi is not None:
+            me.text("RSI 지표", style=me.Style(
+                font_size=13,
+                font_weight='bold',
+                color=COLORS['text_secondary'],
+                margin=me.Margin(bottom=8),
+            ))
+            rsi_gauge_chart(rsi, height=160)
 
-    for label, value in metrics:
-        if value and value != 'N/A':
-            color = None
-            if label == 'Trend':
-                color = get_badge_color(str(value))
-            _render_metric_row(label, value, color)
+        # Support/Resistance Chart
+        if current_price and (support or resistance):
+            me.text("지지/저항 레벨", style=me.Style(
+                font_size=13,
+                font_weight='bold',
+                color=COLORS['text_secondary'],
+                margin=me.Margin(top=12, bottom=8),
+            ))
+            support_resistance_chart(current_price, support, resistance, height=200)
+
+    # Metrics Section (compact)
+    metrics_container = me.Style(
+        padding=me.Padding(top=8),
+        border=me.Border(
+            top=me.BorderSide(width=1, color=COLORS['divider'], style='solid')
+        ),
+    )
+
+    with me.box(style=metrics_container):
+        price_str = f'${current_price:,.2f}' if current_price else 'N/A'
+        metrics = [
+            ('추세', data.get('trend', 'N/A')),
+            ('현재가', price_str),
+            ('MACD 신호', data.get('macd_signal', 'N/A')),
+        ]
+
+        for label, value in metrics:
+            if value and value != 'N/A':
+                color = None
+                if label == '추세':
+                    color = get_badge_color(str(value))
+                _render_metric_row(label, value, color)
 
     # Render summary
     _render_summary(data)
 
 
 def _render_fundamental_metrics(data: Dict[str, Any]):
-    """Render fundamental analysis metrics."""
-    # Format market cap
-    market_cap = data.get('market_cap')
-    if market_cap:
-        if market_cap >= 1e12:
-            cap_str = f'${market_cap/1e12:.2f}T'
-        elif market_cap >= 1e9:
-            cap_str = f'${market_cap/1e9:.2f}B'
-        else:
-            cap_str = f'${market_cap/1e6:.2f}M'
-    else:
-        cap_str = 'N/A'
-
-    # Format percentages
+    """Render fundamental analysis metrics with chart."""
+    pe_ratio = data.get('pe_ratio')
+    pb_ratio = data.get('pb_ratio')
     roe = data.get('roe')
-    roe_str = f'{roe:.1f}%' if roe is not None else 'N/A'
-
     revenue_growth = data.get('revenue_growth')
-    growth_str = f'{revenue_growth:.1f}%' if revenue_growth is not None else 'N/A'
+    market_cap = data.get('market_cap')
 
-    metrics = [
-        ('Market Cap', cap_str),
-        ('P/E Ratio', data.get('pe_ratio', 'N/A')),
-        ('P/B Ratio', data.get('pb_ratio', 'N/A')),
-        ('ROE', roe_str),
-        ('Revenue Growth', growth_str),
-        ('Valuation', data.get('valuation_verdict', 'N/A')),
-    ]
+    # Chart Section
+    chart_container = me.Style(
+        margin=me.Margin(bottom=16),
+    )
 
-    for label, value in metrics:
-        if value and value != 'N/A':
-            color = None
-            if label == 'Valuation':
-                color = get_badge_color(str(value))
-            _render_metric_row(label, value, color)
+    with me.box(style=chart_container):
+        me.text("밸류에이션 지표", style=me.Style(
+            font_size=13,
+            font_weight='bold',
+            color=COLORS['text_secondary'],
+            margin=me.Margin(bottom=8),
+        ))
+        valuation_bar_chart(pe_ratio, pb_ratio, roe, revenue_growth, height=180)
+
+    # Metrics Section (compact)
+    metrics_container = me.Style(
+        padding=me.Padding(top=8),
+        border=me.Border(
+            top=me.BorderSide(width=1, color=COLORS['divider'], style='solid')
+        ),
+    )
+
+    with me.box(style=metrics_container):
+        # Format market cap
+        if market_cap:
+            if market_cap >= 1e12:
+                cap_str = f'${market_cap/1e12:.2f}T'
+            elif market_cap >= 1e9:
+                cap_str = f'${market_cap/1e9:.2f}B'
+            else:
+                cap_str = f'${market_cap/1e6:.2f}M'
+        else:
+            cap_str = 'N/A'
+
+        metrics = [
+            ('시가총액', cap_str),
+            ('밸류에이션', data.get('valuation_verdict', 'N/A')),
+            ('추천', data.get('recommendation', 'N/A')),
+        ]
+
+        for label, value in metrics:
+            if value and value != 'N/A':
+                color = None
+                if label in ('밸류에이션', '추천'):
+                    color = get_badge_color(str(value))
+                _render_metric_row(label, value, color)
 
     # Render summary
     _render_summary(data)
 
 
 def _render_sentiment_metrics(data: Dict[str, Any]):
-    """Render sentiment analysis metrics."""
-    # Format sentiment score
-    score = data.get('sentiment_score')
-    if score is not None:
-        # Handle both 0-1 and -1 to 1 scales
-        if -1 <= score <= 1:
-            score_str = f'{score:.2f}'
-        else:
-            score_str = f'{score:.1f}'
-    else:
-        score_str = 'N/A'
+    """Render sentiment analysis metrics with gauge chart."""
+    sentiment_score = data.get('sentiment_score')
+    sentiment_verdict = data.get('sentiment_verdict')
 
-    metrics = [
-        ('Sentiment', data.get('sentiment_verdict', 'N/A')),
-        ('Score', score_str),
-        ('Analyst Consensus', data.get('analyst_consensus', 'N/A')),
-    ]
+    # Chart Section
+    chart_container = me.Style(
+        margin=me.Margin(bottom=16),
+    )
 
-    for label, value in metrics:
-        if value and value != 'N/A':
-            color = None
-            if label in ('Sentiment', 'Analyst Consensus'):
+    with me.box(style=chart_container):
+        me.text("시장 심리 지수", style=me.Style(
+            font_size=13,
+            font_weight='bold',
+            color=COLORS['text_secondary'],
+            margin=me.Margin(bottom=8),
+        ))
+        sentiment_gauge_chart(sentiment_score, sentiment_verdict, height=160)
+
+    # Metrics Section
+    metrics_container = me.Style(
+        padding=me.Padding(top=8),
+        border=me.Border(
+            top=me.BorderSide(width=1, color=COLORS['divider'], style='solid')
+        ),
+    )
+
+    with me.box(style=metrics_container):
+        metrics = [
+            ('애널리스트 컨센서스', data.get('analyst_consensus', 'N/A')),
+        ]
+
+        for label, value in metrics:
+            if value and value != 'N/A':
                 color = get_badge_color(str(value))
-            _render_metric_row(label, value, color)
+                _render_metric_row(label, value, color)
 
     # Render top headlines if available
     headlines = data.get('top_headlines', [])
     if headlines:
-        me.text('Top Headlines:', style=me.Style(
+        me.text('주요 헤드라인:', style=me.Style(
             font_size=13,
+            font_weight='bold',
             color=COLORS['text_secondary'],
             margin=me.Margin(top=12, bottom=8),
         ))
@@ -296,35 +366,57 @@ def _render_sentiment_metrics(data: Dict[str, Any]):
 
 
 def _render_risk_metrics(data: Dict[str, Any]):
-    """Render risk assessment metrics."""
-    # Format volatility and max drawdown as percentages
+    """Render risk assessment metrics with charts."""
+    risk_level = data.get('risk_level')
     volatility = data.get('volatility')
-    vol_str = f'{volatility:.1f}%' if volatility is not None else 'N/A'
-
-    max_dd = data.get('max_drawdown')
-    dd_str = f'{max_dd:.1f}%' if max_dd is not None else 'N/A'
-
-    # Format beta and sharpe ratio
+    max_drawdown = data.get('max_drawdown')
     beta = data.get('beta')
-    beta_str = f'{beta:.2f}' if beta is not None else 'N/A'
+    sharpe_ratio = data.get('sharpe_ratio')
 
-    sharpe = data.get('sharpe_ratio')
-    sharpe_str = f'{sharpe:.2f}' if sharpe is not None else 'N/A'
+    # Chart Section
+    chart_container = me.Style(
+        display='flex',
+        flex_direction='column',
+        gap=16,
+        margin=me.Margin(bottom=16),
+    )
 
-    metrics = [
-        ('Risk Level', data.get('risk_level', 'N/A')),
-        ('Beta', beta_str),
-        ('Volatility', vol_str),
-        ('Sharpe Ratio', sharpe_str),
-        ('Max Drawdown', dd_str),
-    ]
+    with me.box(style=chart_container):
+        # Risk Level Gauge
+        me.text("리스크 수준", style=me.Style(
+            font_size=13,
+            font_weight='bold',
+            color=COLORS['text_secondary'],
+            margin=me.Margin(bottom=8),
+        ))
+        risk_gauge_chart(risk_level, volatility, max_drawdown, height=160)
 
-    for label, value in metrics:
-        if value and value != 'N/A':
-            color = None
-            if label == 'Risk Level':
-                color = get_badge_color(str(value))
-            _render_metric_row(label, value, color)
+        # Risk Metrics Bar Chart
+        me.text("리스크 지표", style=me.Style(
+            font_size=13,
+            font_weight='bold',
+            color=COLORS['text_secondary'],
+            margin=me.Margin(top=12, bottom=8),
+        ))
+        risk_metrics_bar_chart(volatility, max_drawdown, beta, sharpe_ratio, height=160)
+
+    # Metrics Section (compact - only show beta)
+    metrics_container = me.Style(
+        padding=me.Padding(top=8),
+        border=me.Border(
+            top=me.BorderSide(width=1, color=COLORS['divider'], style='solid')
+        ),
+    )
+
+    with me.box(style=metrics_container):
+        beta_str = f'{beta:.2f}' if beta is not None else 'N/A'
+        metrics = [
+            ('베타', beta_str),
+        ]
+
+        for label, value in metrics:
+            if value and value != 'N/A':
+                _render_metric_row(label, value)
 
     # Render summary
     _render_summary(data)
