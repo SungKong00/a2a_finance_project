@@ -1,0 +1,6 @@
+{
+  "ticker": "HOOD",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-08T20:45:54.175411",
+  "response": "{\"ticker\": \"HOOD\", \"risk_level\": \"매우 높음\", \"beta\": 2.433, \"volatility\": 0.7, \"max_drawdown\": -0.8, \"sharpe_ratio\": 0.5, \"summary\": \"Robinhood Markets(HOOD)는 2.433의 높은 베타와 상당한 주가 변동성을 보이는 매우 높은 위험 수준의 주식입니다. 52주 최저점에서 최고점까지의 최대 하락폭은 약 -80%로, 투자 시 상당한 주의가 필요합니다.\"}"
+}

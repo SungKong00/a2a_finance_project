@@ -1,0 +1,10 @@
+{
+  "ticker": "ASML",
+  "timestamp": "2025-12-08T03:04:38.827174",
+  "agents": {
+    "technical_analyst": "{\"ticker\": \"ASML\", \"current_price\": 1099.47, \"trend\": \"강세\", \"rsi\": null, \"macd_signal\": \"중립\", \"support_levels\": [1000, 950], \"resistance_levels\": [1150, 1180], \"summary\": \"ASML은 네덜란드에 본사를 둔 반도체 장비 제조업체입니다. 2025년 12월 6일 기준 ASML의 현재 주가는 1,099.47달러이며, 지난 6개월간의 주가 추이는 전반적으로 상승세를 보이고 있습니다. 지지선은 1,000달러와 950달러, 저항선은 1,150달러와 1,180달러로 분석됩니다. RSI 및 MACD 지표는 추가 분석이 필요합니다.\"}\n",
+    "fundamental_analyst": "{\"ticker\": \"ASML\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 38.9, \"pb_ratio\": 22.4, \"market_cap\": 426756702208, \"revenue_growth\": 0.007, \"roe\": 0.53852004, \"recommendation\": \"매수\", \"summary\": \"ASML은 38.9의 높은 주가수익비율(PER)과 22.4의 주가순자산비율(PBR)을 보이지만, 53.85%에 달하는 뛰어난 자기자본이익률(ROE)을 자랑합니다. 현재 0.7%의 낮은 매출 성장률에도 불구하고, 핵심 기술력을 바탕으로 한 시장 지배력과 높은 수익성을 고려할 때 매수 포지션이 유효합니다.\"}",
+    "sentiment_analyst": "{\"ticker\": \"ASML\", \"sentiment_score\": 8.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"매수 75%, 보유 20%, 매도 5%\", \"top_headlines\": [\"ASML, 59% 상승... 지금 매수해야 할까?\", \"애널리스트들이 ASML을 2026년 최고의 반도체 주식으로 꼽는 이유\", \"브로커들은 ASML (ASML) 투자를 제안: 투자 전 이것을 읽어보세요\"], \"summary\": \"ASML은 최근 주가가 59% 상승하며 사상 최고치를 기록하는 등 매우 강한 시장 심리를 보이고 있습니다. 애널리스트들은 ASML을 2026년 최고의 반도체 주식 중 하나로 평가하며 긍정적인 전망을 내놓고 있습니다. 다수의 브로커리지에서 매수 의견을 제시하고 있으며, AI 관련 성장주로서 잠재적인 주식 분할 가능성도 언급되고 있습니다. 전반적으로 ASML에 대한 시장의 기대는 매우 높습니다.\"}",
+    "risk_assessor": "{\"ticker\": \"ASML\", \"risk_level\": \"보통\", \"beta\": 1.355, \"volatility\": 0.30, \"max_drawdown\": -0.25, \"sharpe_ratio\": 1.1, \"summary\": \"ASML은 1.355의 베타를 가지며 시장 변동에 다소 민감하게 반응할 수 있습니다. 예상되는 변동성과 하방 리스크를 고려할 때, 이 주식은 보통 수준의 위험도를 지닌 것으로 평가됩니다.\"}"
+  }
+}

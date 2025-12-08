@@ -73,6 +73,7 @@ def chat_box(
                             else me.theme_var('secondary-container')
                         ),
                         border_radius=15,
+                        color='#FFFFFF',  # White text for better readability
                     ),
                 )
     if progress_bar:
@@ -113,6 +114,7 @@ def chat_box(
                                 top=1, left=15, right=15, bottom=1
                             ),
                             margin=me.Margin(top=5, left=0, right=0, bottom=5),
+                            color='#FFFFFF',  # White text for better readability
                         ),
                     )
                     me.progress_bar(color='accent')

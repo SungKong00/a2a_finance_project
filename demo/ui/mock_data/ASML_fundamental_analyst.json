@@ -1,0 +1,6 @@
+{
+  "ticker": "ASML",
+  "agent_name": "fundamental_analyst",
+  "timestamp": "2025-12-08T03:04:38.832676",
+  "response": "{\"ticker\": \"ASML\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 38.9, \"pb_ratio\": 22.4, \"market_cap\": 426756702208, \"revenue_growth\": 0.007, \"roe\": 0.53852004, \"recommendation\": \"매수\", \"summary\": \"ASML은 38.9의 높은 주가수익비율(PER)과 22.4의 주가순자산비율(PBR)을 보이지만, 53.85%에 달하는 뛰어난 자기자본이익률(ROE)을 자랑합니다. 현재 0.7%의 낮은 매출 성장률에도 불구하고, 핵심 기술력을 바탕으로 한 시장 지배력과 높은 수익성을 고려할 때 매수 포지션이 유효합니다.\"}"
+}

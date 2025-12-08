@@ -1,6 +1,6 @@
 {
   "ticker": "CRWV",
   "agent_name": "technical_analyst",
-  "timestamp": "2025-12-08T00:18:08.593924",
-  "response": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  "timestamp": "2025-12-08T03:25:54.347297",
+  "response": "{\"ticker\": \"CRWV\", \"current_price\": 88.3, \"trend\": \"약세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [84.62, 77.86], \"resistance_levels\": [88.76, 100.02], \"summary\": \"CRWV의 지난 1개월간 주가는 116.44에서 69.21까지 하락 후 88.3까지 반등하는 등 높은 변동성을 보였습니다. 현재 주가는 50일 및 200일 이동평균선 아래에서 거래되고 있으며, 이는 단기 및 중장기적인 약세 추세를 나타냅니다. RSI 지표는 제공되지 않아 과매수 또는 과매도 상태를 판단하기 어렵습니다. 단기 지지선은 84.62, 저항선은 88.76에 위치합니다. 추가적인 분석을 위해서는 MACD와 같은 다른 기술 지표와 함께 더 긴 기간의 가격 데이터를 검토하는 것이 좋습니다.\"}"
 }

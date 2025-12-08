@@ -59,6 +59,11 @@ def extract_json_from_response(response_text: str) -> dict[str, Any] | None:
 
 def _fix_json_string(json_str: str) -> str:
     """Fix common JSON formatting issues."""
+    # Fix double-escaped quotes (\\\" -> \")
+    json_str = json_str.replace('\\\\"', '\\"')
+    json_str = json_str.replace('\\\\\"', '\\"')
+    # Also handle triple backslash case
+    json_str = re.sub(r'\\{3,}"', r'\\"', json_str)
     # Remove trailing commas before ] or }
     json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
     # Replace single quotes with double quotes

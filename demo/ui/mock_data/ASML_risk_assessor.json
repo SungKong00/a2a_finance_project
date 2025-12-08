@@ -1,0 +1,6 @@
+{
+  "ticker": "ASML",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-08T03:04:38.833522",
+  "response": "{\"ticker\": \"ASML\", \"risk_level\": \"보통\", \"beta\": 1.355, \"volatility\": 0.30, \"max_drawdown\": -0.25, \"sharpe_ratio\": 1.1, \"summary\": \"ASML은 1.355의 베타를 가지며 시장 변동에 다소 민감하게 반응할 수 있습니다. 예상되는 변동성과 하방 리스크를 고려할 때, 이 주식은 보통 수준의 위험도를 지닌 것으로 평가됩니다.\"}"
+}

@@ -125,6 +125,7 @@ def render_form_card(message: StateMessage, data: dict[str, Any] | None):
                 '0 1px 2px 0 rgba(60, 64, 67, 0.3), '
                 '0 1px 3px 1px rgba(60, 64, 67, 0.15)'
             ),
+            color='#FFFFFF',  # White text for better readability
         )
     ):
         if data:
@@ -137,7 +138,7 @@ def render_form_card(message: StateMessage, data: dict[str, Any] | None):
 
             me.markdown('\n'.join(lines).rstrip())
         else:
-            me.text('Form canceled')
+            me.text('Form canceled', style=me.Style(color='#FFFFFF'))
 
 
 def generate_form_elements(

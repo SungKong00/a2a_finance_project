@@ -180,7 +180,7 @@ def _render_summary(data: Dict[str, Any]):
             border_radius=8,
             font_size=13,
             line_height='1.6',
-            color=COLORS['text_secondary'],
+            color=COLORS['text_primary'],  # Use primary (white) for better readability
         )
         with me.box(style=summary_style):
             me.markdown(summary)

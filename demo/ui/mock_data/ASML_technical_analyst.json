@@ -1,0 +1,6 @@
+{
+  "ticker": "ASML",
+  "agent_name": "technical_analyst",
+  "timestamp": "2025-12-08T03:04:38.831866",
+  "response": "{\"ticker\": \"ASML\", \"current_price\": 1099.47, \"trend\": \"강세\", \"rsi\": null, \"macd_signal\": \"중립\", \"support_levels\": [1000, 950], \"resistance_levels\": [1150, 1180], \"summary\": \"ASML은 네덜란드에 본사를 둔 반도체 장비 제조업체입니다. 2025년 12월 6일 기준 ASML의 현재 주가는 1,099.47달러이며, 지난 6개월간의 주가 추이는 전반적으로 상승세를 보이고 있습니다. 지지선은 1,000달러와 950달러, 저항선은 1,150달러와 1,180달러로 분석됩니다. RSI 및 MACD 지표는 추가 분석이 필요합니다.\"}\n"
+}

@@ -42,8 +42,8 @@ COLORS = {
     'card_background': '#252525',
     'card_border': '#333333',
     'card_shadow': 'rgba(0,0,0,0.4)',
-    'text_primary': '#E0E0E0',
-    'text_secondary': '#9E9E9E',
+    'text_primary': '#FFFFFF',      # White for better readability
+    'text_secondary': '#B0B0B0',    # Lighter gray for better contrast
     'divider': '#333333',
     'accent': '#BB86FC',
 }
