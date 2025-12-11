@@ -29,7 +29,11 @@ root_agent = Agent(
     description='Expert technical analyst specializing in chart patterns, indicators, and price action analysis',
     instruction="""기술적 분석가. 주식의 추세와 기술 지표를 분석합니다.
 
-도구: get_price_history(period=1mo), get_ticker_info
+도구 사용 규칙:
+1. 단기 분석 (1개월 이내): `get_historical_data(ticker, period='1mo', interval='1d')` 사용
+2. 중장기 분석 (6개월 ~ 1년): `get_historical_data(ticker, period='1y', interval='1wk')` 사용 (토큰 절약 및 효율성 증대)
+
+**주의**: 필요 이상으로 긴 기간의 일봉(`interval='1d'`) 데이터를 요청하지 마시오. 특히 6개월 이상의 기간에는 주봉(`interval='1wk'`)을 적극 활용하시오.
 
 **반드시 아래 JSON 형식으로만 응답. 다른 텍스트 금지:**
 ```json
