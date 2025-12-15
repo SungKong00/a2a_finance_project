@@ -84,6 +84,10 @@ class StockAnalysis:
     confidence: float = 0.0
     is_loading: bool = False
     error: str = ''
+    technical_done: bool = False
+    fundamental_done: bool = False
+    sentiment_done: bool = False
+    risk_done: bool = False
 
 
 @me.stateclass

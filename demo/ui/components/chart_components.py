@@ -597,3 +597,59 @@ def sentiment_gauge_chart(
 
     fig.update_layout(**_get_chart_layout(height, margin=dict(l=30, r=30, t=50, b=10)))
     _render_plotly_chart(fig, height)
+
+
+# =============================================================================
+# CONFIDENCE GAUGE CHART
+# =============================================================================
+
+def confidence_gauge(
+    confidence_score: float,
+    title: str = "신뢰도",
+    height: int = 180,
+):
+    """
+    Render confidence score gauge chart.
+
+    Confidence score: 0.0 to 1.0
+    """
+    # Normalize to 0-100
+    score_pct = max(0, min(100, confidence_score * 100))
+
+    # Determine color
+    if score_pct >= 80:
+        bar_color = COLORS['bullish']
+    elif score_pct >= 50:
+        bar_color = COLORS['neutral']
+    else:
+        bar_color = COLORS['bearish']
+
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number",
+        value=score_pct,
+        number={'suffix': '%', 'font': {'size': 24, 'color': COLORS['text_primary']}},
+        title={'text': title, 'font': {'size': 14, 'color': COLORS['text_secondary']}},
+        gauge={
+            'axis': {
+                'range': [0, 100],
+                'tickwidth': 1,
+                'tickcolor': COLORS['text_secondary'],
+                'tickvals': [0, 50, 100],
+                'ticktext': ['0', '50', '100'],
+            },
+            'bar': {'color': bar_color, 'thickness': 0.3},
+            'bgcolor': COLORS['surface'],
+            'borderwidth': 0,
+            'steps': [
+                {'range': [0, 100], 'color': _hex_to_rgba(COLORS['surface'], 0.5)},
+            ],
+            'threshold': {
+                'line': {'color': COLORS['text_primary'], 'width': 2},
+                'thickness': 0.8,
+                'value': score_pct,
+            },
+        }
+    ))
+
+    fig.update_layout(**_get_chart_layout(height, margin=dict(l=30, r=30, t=50, b=10)))
+    _render_plotly_chart(fig, height)
