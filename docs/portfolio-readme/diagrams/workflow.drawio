@@ -1,71 +1,135 @@
 <?xml version='1.0' encoding='utf-8'?>
-<mxfile host="app.diagrams.net" version="29.3.6">
-  <diagram id="a2a-workflow" name="Page 1">
-    <mxGraphModel grid="0" page="1" pageScale="1" pageWidth="1000" pageHeight="505" background="#ffffff">
+<mxfile host="app.diagrams.net" version="32.7.4">
+  <diagram id="sheet" name="종목 검색의 두 결과 경로">
+    <mxGraphModel page="1" pageWidth="578" pageHeight="540" background="#FFFFFF" grid="1">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        <mxCell id="bg" value="" style="rounded=0;fillColor=#ffffff;strokeColor=none;connectable=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="0" y="0" width="1000" height="505" />
+        <mxCell id="canvas" value="" style="fillColor=#FFFFFF;strokeColor=none;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="0" y="0" width="578" height="540" as="geometry" />
         </mxCell>
-        <mxCell id="title" value="종목 입력에서 분석 결과까지" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=29;fontStyle=1;fontColor=#10233c;fontFamily=Arial;connectable=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="26" y="14" width="948" height="40" />
+        <mxCell id="n1" value="A2A  /  워크플로우" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=16;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="18" y="12" width="542" height="25" as="geometry" />
         </mxCell>
-        <mxCell id="subtitle" value="구조화된 결과는 카드로, 파싱이 되지 않는 응답은 텍스트로 확인합니다." style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=17;fontStyle=0;fontColor=#475f7a;fontFamily=Arial;connectable=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="27" y="56" width="946" height="32" />
+        <mxCell id="n2" value="종목 검색의 두 결과 경로" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=30;fontStyle=1;fontColor=#142C43;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="18" y="39" width="542" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="flow" value="주요 입력·결과 경로" style="container=1;collapsible=0;selectable=1;rounded=1;arcSize=10;whiteSpace=wrap;html=0;align=left;verticalAlign=top;spacingTop=11;spacingLeft=14;fillColor=#f2f5f9;fillOpacity=32;strokeColor=#8191a6;dashed=1;dashPattern=4 4;fontSize=17;fontStyle=1;fontColor=#344960;fontFamily=Arial;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="28" y="106" width="940" height="355" />
+        <mxCell id="web" value="" style="rounded=1;arcSize=6;fillColor=#EEF6FE;strokeColor=#A1BFDC;strokeWidth=1.5;connectable=1;" vertex="1" parent="1">
+          <mxGeometry x="15" y="93" width="285" height="249" as="geometry" />
         </mxCell>
-        <mxCell id="request" value="&lt;b&gt;01  종목 입력&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:15px;color:#425b71&quot;&gt;티커 또는 기업명&lt;/span&gt;" style="html=1;whiteSpace=wrap;rounded=1;arcSize=14;align=left;verticalAlign=middle;spacingLeft=46;spacingRight=7;fillColor=#eaf4ff;strokeColor=#4384bc;strokeWidth=1.4;fontColor=#12436c;fontSize=20;fontFamily=Arial;" vertex="1" parent="flow">
-          <mxGeometry as="geometry" x="29" y="50" width="214" height="75" />
+        <mxCell id="n3" value="Mesop UI" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=22;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="27" y="99" width="261" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="request-icon" value="" style="shape=image;imageAspect=1;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTI0MzZjIiBzdHJva2Utd2lkdGg9IjEuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSI0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTMiIHJ4PSIyIi8+PHBhdGggZD0iTTggMjFoOG0tNC00djQiLz48L3N2Zz4=;html=0;fillColor=#ffffff;strokeColor=#12436c;strokeWidth=1.5;connectable=0;pointerEvents=0;aspect=fixed;" vertex="1" parent="request">
-          <mxGeometry as="geometry" x="13" y="26" width="23" height="23" />
+        <mxCell id="h" value="" style="rounded=1;arcSize=6;fillColor=#EFF9F6;strokeColor=#9CCBBB;strokeWidth=1.5;connectable=1;" vertex="1" parent="1">
+          <mxGeometry x="339" y="93" width="224" height="249" as="geometry" />
         </mxCell>
-        <mxCell id="submit" value="&lt;b&gt;02  분석 요청&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:15px;color:#425b71&quot;&gt;대화에 메시지 전송&lt;/span&gt;" style="html=1;whiteSpace=wrap;rounded=1;arcSize=14;align=left;verticalAlign=middle;spacingLeft=46;spacingRight=7;fillColor=#eaf4ff;strokeColor=#4384bc;strokeWidth=1.4;fontColor=#12436c;fontSize=20;fontFamily=Arial;" vertex="1" parent="flow">
-          <mxGeometry as="geometry" x="348" y="50" width="214" height="75" />
+        <mxCell id="n4" value="분석 서비스" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=22;fontStyle=1;fontColor=#076654;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="351" y="99" width="200" height="32" as="geometry" />
         </mxCell>
-        <mxCell id="submit-icon" value="" style="shape=image;imageAspect=1;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTI0MzZjIiBzdHJva2Utd2lkdGg9IjEuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSI0IiB3aWR0aD0iMTgiIGhlaWdodD0iNyIgcng9IjEuNSIvPjxyZWN0IHg9IjMiIHk9IjEzIiB3aWR0aD0iMTgiIGhlaWdodD0iNyIgcng9IjEuNSIvPjxwYXRoIGQ9Ik03IDcuNWgxbS0xIDloMW01LTloNG0tNCA5aDQiLz48L3N2Zz4=;html=0;fillColor=#ffffff;strokeColor=#12436c;strokeWidth=1.5;connectable=0;pointerEvents=0;aspect=fixed;" vertex="1" parent="submit">
-          <mxGeometry as="geometry" x="13" y="26" width="23" height="23" />
+        <mxCell id="out" value="" style="rounded=1;arcSize=6;fillColor=#EEF6FE;strokeColor=#A1BFDC;strokeWidth=1.5;connectable=1;" vertex="1" parent="1">
+          <mxGeometry x="15" y="415" width="548" height="104" as="geometry" />
         </mxCell>
-        <mxCell id="check" value="&lt;b&gt;03  결과 수신&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:15px;color:#425b71&quot;&gt;분석 JSON 식별&lt;/span&gt;" style="html=1;whiteSpace=wrap;rounded=1;arcSize=14;align=left;verticalAlign=middle;spacingLeft=46;spacingRight=7;fillColor=#e8faf5;strokeColor=#4c9a82;strokeWidth=1.4;fontColor=#125c4d;fontSize=20;fontFamily=Arial;" vertex="1" parent="flow">
-          <mxGeometry as="geometry" x="674" y="50" width="214" height="75" />
+        <mxCell id="n5" value="Mesop UI · 결과 표시" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=20;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="180" y="421" width="230" height="28" as="geometry" />
         </mxCell>
-        <mxCell id="check-icon" value="" style="shape=rhombus;html=0;fillColor=#ffffff;strokeColor=#125c4d;strokeWidth=1.5;connectable=0;pointerEvents=0;aspect=fixed;" vertex="1" parent="check">
-          <mxGeometry as="geometry" x="13" y="26" width="23" height="23" />
+        <mxCell id="sym" value="" style="rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#A1BFDC;strokeWidth=1.4;" vertex="1" parent="1">
+          <mxGeometry x="31" y="143" width="225" height="58" as="geometry" />
         </mxCell>
-        <mxCell id="cards" value="&lt;b&gt;04  분석 대시보드&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:15px;color:#425b71&quot;&gt;역할별 카드·차트&lt;/span&gt;" style="html=1;whiteSpace=wrap;rounded=1;arcSize=14;align=left;verticalAlign=middle;spacingLeft=46;spacingRight=7;fillColor=#e8faf5;strokeColor=#4c9a82;strokeWidth=1.4;fontColor=#125c4d;fontSize=20;fontFamily=Arial;" vertex="1" parent="flow">
-          <mxGeometry as="geometry" x="674" y="199" width="214" height="75" />
+        <mxCell id="n6" value="" style="shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23195A91%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%225%22%20y%3D%227%22%20width%3D%2226%22%20height%3D%2219%22%20rx%3D%223%22%2F%3E%3Cpath%20d%3D%22M18%2026v5m-6%200h12%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="41" y="158.5" width="27" height="27" as="geometry" />
         </mxCell>
-        <mxCell id="cards-icon" value="" style="shape=image;imageAspect=1;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMTI1YzRkIiBzdHJva2Utd2lkdGg9IjEuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cmVjdCB4PSIzIiB5PSI0IiB3aWR0aD0iMTgiIGhlaWdodD0iMTMiIHJ4PSIyIi8+PHBhdGggZD0iTTggMjFoOG0tNC00djQiLz48L3N2Zz4=;html=0;fillColor=#ffffff;strokeColor=#125c4d;strokeWidth=1.5;connectable=0;pointerEvents=0;aspect=fixed;" vertex="1" parent="cards">
-          <mxGeometry as="geometry" x="13" y="26" width="23" height="23" />
+        <mxCell id="n7" value="1  종목 입력" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=21;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="147" width="174" height="31" as="geometry" />
         </mxCell>
-        <mxCell id="text" value="&lt;b&gt;텍스트 결과&lt;/b&gt;&lt;br/&gt;&lt;span style=&quot;font-size:15px;color:#425b71&quot;&gt;파싱할 수 없는 응답&lt;/span&gt;" style="html=1;whiteSpace=wrap;rounded=1;arcSize=14;align=left;verticalAlign=middle;spacingLeft=46;spacingRight=7;fillColor=#fff4e3;strokeColor=#c08732;strokeWidth=1.4;fontColor=#72501d;fontSize=20;fontFamily=Arial;" vertex="1" parent="flow">
-          <mxGeometry as="geometry" x="348" y="199" width="214" height="75" />
+        <mxCell id="n8" value="티커 또는 회사명" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=0;fontColor=#3D5368;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="178" width="174" height="19" as="geometry" />
         </mxCell>
-        <mxCell id="text-icon" value="" style="shape=image;imageAspect=1;image=data:image/svg+xml,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjNzI1MDFkIiBzdHJva2Utd2lkdGg9IjEuNyIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNNiAzaDhsNCA0djE0SDZ6TTE0IDN2NWg0TTkgMTJoNm0tNiA0aDYiLz48L3N2Zz4=;html=0;fillColor=#ffffff;strokeColor=#72501d;strokeWidth=1.5;connectable=0;pointerEvents=0;aspect=fixed;" vertex="1" parent="text">
-          <mxGeometry as="geometry" x="13" y="26" width="23" height="23" />
+        <mxCell id="ask" value="" style="rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#9CCBBB;strokeWidth=1.4;" vertex="1" parent="1">
+          <mxGeometry x="353" y="143" width="195" height="58" as="geometry" />
         </mxCell>
-        <mxCell id="e1" value="클릭" source="request" target="submit" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=0;endArrow=block;endFill=1;jettySize=auto;strokeWidth=2;labelBackgroundColor=#ffffff;fontColor=#29435e;fontSize=15;fontFamily=Arial;strokeColor=#477199;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
-          <mxGeometry as="geometry" relative="1" />
+        <mxCell id="n9" value="" style="shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23076654%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Ccircle%20cx%3D%2218%22%20cy%3D%2218%22%20r%3D%224%22%2F%3E%3Cpath%20d%3D%22M18%2014V5m0%2017v9m-4-13H5m17%200h9M15%208l3-3%203%203m-6%2020%203%203%203-3M8%2015l-3%203%203%203m20-6%203%203-3%203%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="363" y="158.5" width="27" height="27" as="geometry" />
         </mxCell>
-        <mxCell id="e2" value="응답 조회" source="submit" target="check" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=0;endArrow=block;endFill=1;jettySize=auto;strokeWidth=2;labelBackgroundColor=#ffffff;fontColor=#29435e;fontSize=15;fontFamily=Arial;strokeColor=#477199;exitX=1;exitY=0.5;entryX=0;entryY=0.5;">
-          <mxGeometry as="geometry" relative="1" />
+        <mxCell id="n10" value="2  분석 요청" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=21;fontStyle=1;fontColor=#076654;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="396" y="147" width="144" height="31" as="geometry" />
         </mxCell>
-        <mxCell id="e3" value="JSON 확인" source="check" target="cards" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=0;endArrow=block;endFill=1;jettySize=auto;strokeWidth=2;labelBackgroundColor=#ffffff;fontColor=#29435e;fontSize=15;fontFamily=Arial;strokeColor=#477199;exitX=0.5;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry as="geometry" relative="1" />
+        <mxCell id="n11" value="대화 메시지 접수" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=0;fontColor=#3D5368;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="396" y="178" width="144" height="19" as="geometry" />
         </mxCell>
-        <mxCell id="e4" value="JSON 미확인" source="check" target="text" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=0;endArrow=block;endFill=1;jettySize=auto;strokeWidth=2;labelBackgroundColor=#ffffff;fontColor=#29435e;fontSize=15;fontFamily=Arial;strokeColor=#94651e;dashed=1;dashPattern=6 4;exitX=0.04;exitY=1;entryX=0.5;entryY=0;">
-          <mxGeometry as="geometry" relative="1">
+        <mxCell id="result" value="" style="rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#9CCBBB;strokeWidth=1.4;" vertex="1" parent="1">
+          <mxGeometry x="353" y="253" width="195" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="n12" value="" style="shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23076654%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%2226%22%20height%3D%2210%22%20rx%3D%223%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%2221%22%20width%3D%2226%22%20height%3D%2210%22%20rx%3D%223%22%2F%3E%3Cpath%20d%3D%22M11%2010h2m-2%2016h2m6-16h6m-6%2016h6%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="363" y="269.0" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="n13" value="3  응답 반환" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=21;fontStyle=1;fontColor=#076654;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="396" y="257" width="144" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="n14" value="분석 결과 반환" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=0;fontColor=#3D5368;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="396" y="288" width="144" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="parse" value="" style="rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#A1BFDC;strokeWidth=1.4;" vertex="1" parent="1">
+          <mxGeometry x="31" y="253" width="225" height="59" as="geometry" />
+        </mxCell>
+        <mxCell id="n15" value="" style="shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23195A91%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m11%209-8%209%208%209m14-18%208%209-8%209m-4-22-6%2026%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="41" y="269.0" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="n16" value="4  JSON 식별" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=21;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="257" width="174" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="n17" value="화면에서 응답 파싱" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=0;fontColor=#3D5368;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="288" width="174" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cards" value="" style="rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#A1BFDC;strokeWidth=1.4;" vertex="1" parent="1">
+          <mxGeometry x="31" y="455" width="225" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="n18" value="" style="shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%23195A91%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M6%206v24h25M11%2024l7-9%205%205%208-12%22%2F%3E%3Cpath%20d%3D%22M25%208h6v6%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="41" y="467.5" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="n19" value="카드·차트" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=21;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="459" width="174" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="n20" value="구조화 결과 확인" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=0;fontColor=#3D5368;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="74" y="490" width="174" height="13" as="geometry" />
+        </mxCell>
+        <mxCell id="text" value="" style="rounded=1;arcSize=10;fillColor=#FFFFFF;strokeColor=#DCBC99;strokeWidth=1.4;" vertex="1" parent="1">
+          <mxGeometry x="353" y="455" width="195" height="52" as="geometry" />
+        </mxCell>
+        <mxCell id="n21" value="" style="shape=image;imageAspect=1;aspect=fixed;image=data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2036%2036%22%3E%3Cg%20fill%3D%22none%22%20stroke%3D%22%239A4C0D%22%20stroke-width%3D%222.3%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M9%204h12l7%207v21H9zM21%204v7h7M13%2017h11m-11%205h11m-11%205h8%22%2F%3E%3C%2Fg%3E%3C%2Fsvg%3E;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="363" y="467.5" width="27" height="27" as="geometry" />
+        </mxCell>
+        <mxCell id="n22" value="텍스트 표시" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=21;fontStyle=1;fontColor=#9A4C0D;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="396" y="459" width="144" height="31" as="geometry" />
+        </mxCell>
+        <mxCell id="n23" value="파싱 불가 결과" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=0;fontColor=#3D5368;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="396" y="490" width="144" height="13" as="geometry" />
+        </mxCell>
+        <mxCell id="n24" value="" source="sym" target="ask" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#195A91;strokeWidth=2.4;endArrow=block;endFill=1;endSize=7;dashed=0;dashPattern=5 5;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitPerimeter=0;entryPerimeter=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n25" value="" source="ask" target="result" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#076654;strokeWidth=2.4;endArrow=block;endFill=1;endSize=7;dashed=0;dashPattern=5 5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n26" value="" source="result" target="parse" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#076654;strokeWidth=2.4;endArrow=block;endFill=1;endSize=7;dashed=0;dashPattern=5 5;exitX=0;exitY=0.5;entryX=1;entryY=0.5;exitPerimeter=0;entryPerimeter=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n27" value="" source="parse" target="cards" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#195A91;strokeWidth=2.4;endArrow=block;endFill=1;endSize=7;dashed=0;dashPattern=5 5;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n28" value="JSON 확인" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=1;fontColor=#195A91;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="150" y="366" width="128" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="n29" value="" source="parse" target="text" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=0;strokeColor=#9A4C0D;strokeWidth=2.4;endArrow=block;endFill=1;endSize=7;dashed=1;dashPattern=5 5;exitX=1;exitY=0.76;entryX=0.5;entryY=0;exitPerimeter=0;entryPerimeter=0;">
+          <mxGeometry relative="1" as="geometry">
             <Array as="points">
-              <mxPoint x="712" y="269" />
-              <mxPoint x="483" y="269" />
+              <mxPoint x="291" y="298" />
+              <mxPoint x="291" y="400" />
+              <mxPoint x="450" y="400" />
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="legend" value="점선: 구조화되지 않은 결과의 표시 경로" style="text;html=0;whiteSpace=wrap;align=left;verticalAlign=middle;fontSize=16;fontStyle=0;fontColor=#475f7a;fontFamily=Arial;connectable=0;" vertex="1" parent="1">
-          <mxGeometry as="geometry" x="43" y="465" width="890" height="24" />
+        <mxCell id="n30" value="JSON 미확인" style="text;align=left;verticalAlign=middle;spacing=0;fontFamily=Apple SD Gothic Neo;fontSize=17;fontStyle=1;fontColor=#9A4C0D;fillColor=none;strokeColor=none;whiteSpace=wrap;html=0;connectable=0;" vertex="1" parent="1">
+          <mxGeometry x="307" y="366" width="167" height="26" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
