@@ -1,0 +1,65 @@
+diff --git a/agents/fundamental_analyst/agent.py b/agents/fundamental_analyst/agent.py
+index e1c7af50e87ed0dddb70f7cc28dbd40e348665f2..99375c69372afe7cd4857941131ec409f6801b38 100644
+--- a/agents/fundamental_analyst/agent.py
++++ b/agents/fundamental_analyst/agent.py
+@@ -26,7 +26,7 @@ load_dotenv()
+ # Create the Fundamental Analyst agent
+ root_agent = Agent(
+     name='fundamental_analyst',
+-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
++    model=Gemini(model='gemini-2.5-flash-lite', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert fundamental analyst specializing in financial statements, valuation metrics, and company analysis',
+     instruction="""You are an expert Fundamental Analyst for stock markets.
+ 
+diff --git a/agents/risk_assessor/agent.py b/agents/risk_assessor/agent.py
+index dc4d3a1604735e818c987284c9478d46c53991a3..ce0b262aa4ac27e59be84052b86efae1ee02d37b 100644
+--- a/agents/risk_assessor/agent.py
++++ b/agents/risk_assessor/agent.py
+@@ -27,7 +27,7 @@ load_dotenv()
+ # Create the Risk Assessor agent
+ root_agent = Agent(
+     name='risk_assessor',
+-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
++    model=Gemini(model='gemini-2.5-flash-lite', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert risk analyst specializing in volatility, beta, VIX, and portfolio risk metrics',
+     instruction="""You are an expert Risk Assessor for stock markets.
+ 
+diff --git a/agents/sentiment_analyst/agent.py b/agents/sentiment_analyst/agent.py
+index 40fda7280e2bbe0c93b85662f75d63d0c029f89d..4e5f09dcde54dcd994add0497cc21c9df516aa6f 100644
+--- a/agents/sentiment_analyst/agent.py
++++ b/agents/sentiment_analyst/agent.py
+@@ -27,7 +27,7 @@ load_dotenv()
+ # Create the Sentiment Analyst agent
+ root_agent = Agent(
+     name='sentiment_analyst',
+-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
++    model=Gemini(model='gemini-2.5-flash-lite', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert sentiment analyst specializing in news analysis, analyst ratings, and market mood',
+     instruction="""You are an expert Sentiment Analyst for stock markets.
+ 
+diff --git a/agents/technical_analyst/agent.py b/agents/technical_analyst/agent.py
+index 5509bb2e4a96fbfc644911b5fbedf79bac62511a..141aaf460fc782d9a494261e0f7f43da7d48aff1 100644
+--- a/agents/technical_analyst/agent.py
++++ b/agents/technical_analyst/agent.py
+@@ -25,7 +25,7 @@ load_dotenv()
+ # Create the Technical Analyst agent
+ root_agent = Agent(
+     name='technical_analyst',
+-    model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
++    model=Gemini(model='gemini-2.5-flash-lite', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert technical analyst specializing in chart patterns, indicators, and price action analysis',
+     instruction="""You are an expert Technical Analyst for stock markets.
+ 
+diff --git a/hosts/multiagent/host_agent.py b/hosts/multiagent/host_agent.py
+index 7a1b386c6043193d22fa29979aebb48b44447f28..9f3a9336597264715acaba6048adcabe20006c75 100644
+--- a/hosts/multiagent/host_agent.py
++++ b/hosts/multiagent/host_agent.py
+@@ -91,7 +91,7 @@ class HostAgent:
+ 
+     def create_agent(self) -> Agent:
+         LITELLM_MODEL = os.getenv(
+-            'LITELLM_MODEL', 'gemini/gemini-2.0-flash-001'
++            'LITELLM_MODEL', 'gemini/gemini-2.5-flash-lite'
+         )
+         return Agent(
+             model=LiteLlm(model=LITELLM_MODEL),

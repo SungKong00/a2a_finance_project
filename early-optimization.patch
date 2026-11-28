@@ -1,0 +1,2280 @@
+diff --git a/CLAUDE.md b/CLAUDE.md
+new file mode 100644
+index 0000000000000000000000000000000000000000..c43a158badad047393a2dff99fff6ff6d7a99e9f
+--- /dev/null
++++ b/CLAUDE.md
+@@ -0,0 +1,349 @@
++# CLAUDE.md
++
++This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
++
++## Project Overview
++
++This is an **A2A Stock Analysis Multi-Agent System** - a comprehensive stock analysis platform using Google's Agent-to-Agent (A2A) protocol with specialized AI agents. The system demonstrates multi-agent orchestration where a host agent coordinates multiple specialized analyst agents (Technical, Fundamental, Sentiment, and Risk) to provide comprehensive stock analysis.
++
++## Development Commands
++
++### Starting the System
++
++```bash
++# Start all services (agents + UI)
++./run_all.sh
++
++# Stop all services
++./stop_all.sh
++
++# Clean restart (kills all processes, cleans cache, restarts)
++./stop_all.sh && sleep 3 && pkill -9 -f "uv run" && \
++find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null && \
++find . -type f -name "*.pyc" -delete 2>/dev/null && \
++sleep 2 && ./run_all.sh
++```
++
++### Running Individual Components
++
++```bash
++# Start a specific agent
++cd agents/technical_analyst
++uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10101
++
++# Start with reload for development
++uv run uvicorn agent:a2a_app --host 0.0.0.0 --port 10101 --reload
++
++# Start UI only
++cd demo/ui
++uv run main.py
++```
++
++### Testing
++
++```bash
++# Test agent JSON response (no MCP calls)
++uv run test_simple.py
++
++# Test with actual MCP calls and data artifacts
++uv run test_artifacts.py
++
++# Verify agent is running
++lsof -i :10101  # Technical Analyst
++lsof -i :10102  # Fundamental Analyst
++lsof -i :10103  # Sentiment Analyst
++lsof -i :10104  # Risk Assessor
++lsof -i :12000  # Demo UI
++
++# Check agent card
++curl http://localhost:10101/.well-known/agent-card.json
++```
++
++### Logs
++
++```bash
++# View specific agent logs
++tail -f /tmp/technical_analyst.log
++tail -f /tmp/fundamental_analyst.log
++tail -f /tmp/sentiment_analyst.log
++tail -f /tmp/risk_assessor.log
++tail -f /tmp/demo_ui.log
++```
++
++## Architecture
++
++### Multi-Agent System Flow
++
++```
++User → Mesop UI (Port 12000) → Host Agent (ADK-based orchestrator)
++                                     ↓
++                          analyze_stock_parallel (NEW! 70% faster)
++                                     ↓
++                     ┌───────────────┴───────────────┐
++                     │        PARALLEL               │
++              A2A Protocol                    A2A Protocol
++                     │          (asyncio.gather)     │
++         ┌───────────┼───────────┬──────────────────┴──────┐
++         ↓           ↓           ↓                          ↓
++   Technical    Fundamental  Sentiment                  Risk
++   Analyst      Analyst      Analyst                    Assessor
++   (10101)      (10102)      (10103)                    (10104)
++      │            │            │                          │
++      └────────────┴────────────┴──────────────────────────┘
++                            ↓
++                      Yahoo Finance MCP
++                   (yfmcp - stock data)
++```
++
++**Performance:**
++- **Sequential (old)**: 10s + 12s + 8s + 11s = ~41 seconds
++- **Parallel (NEW)**: max(10s, 12s, 8s, 11s) = ~12 seconds
++- **Improvement**: 70% faster!
++
++### Key Components
++
++1. **Specialist Agents** (`agents/*/agent.py`):
++   - Each agent is a standalone A2A server running on its own port
++   - Uses Google ADK with Gemini 2.0 Flash model
++   - Connected to Yahoo Finance MCP via stdio for real-time stock data
++   - Returns structured JSON with analysis text and data artifacts
++
++2. **Host Agent** (`hosts/multiagent/host_agent.py`):
++   - Orchestrates specialist agents via A2A protocol
++   - Manages RemoteAgentConnections with client factory pattern
++   - Handles task delegation and response aggregation
++   - Runs embedded within the Mesop UI application
++
++3. **Demo UI** (`demo/ui/main.py`):
++   - Mesop-based web interface on port 12000
++   - Dynamically adds/removes agents via agent cards
++   - Renders text, thought bubbles, web forms, and images
++   - Displays A2A task history and events
++
++### Agent Communication Pattern
++
++All specialist agents follow this pattern:
++- Expose A2A endpoint via `to_a2a(agent)` wrapper
++- Use `StdioConnectionParams` to connect to MCP servers
++- Accept natural language queries about stocks
++- Return markdown analysis + structured JSON artifacts
++- JSON format includes: `analysis_text`, `artifacts` (with description/data), `metadata`
++
++## Environment Setup
++
++### Required Environment Variables
++
++Create `demo/ui/.env`:
++```bash
++GOOGLE_API_KEY=your_api_key_here  # Get from https://aistudio.google.com/app/apikey
++```
++
++Alternative for Vertex AI:
++```bash
++GOOGLE_GENAI_USE_VERTEXAI=TRUE
++GOOGLE_CLOUD_PROJECT=your_project_id
++GOOGLE_CLOUD_LOCATION=your_location
++```
++
++Each agent directory also needs a `.env` file with the API key for development/testing.
++
++## Port Allocation
++
++- **10101**: Technical Analyst Agent
++- **10102**: Fundamental Analyst Agent
++- **10103**: Sentiment Analyst Agent
++- **10104**: Risk Assessor Agent
++- **12000**: Demo UI (Mesop web app)
++
++Port conflicts are common during development. Always run `./stop_all.sh` before starting.
++
++## Project Structure
++
++```
++my-a2a-project/
++├── agents/                    # Specialist A2A agents
++│   ├── technical_analyst/     # Chart patterns, RSI, MACD, trends
++│   ├── fundamental_analyst/   # P/E ratios, earnings, financials
++│   ├── sentiment_analyst/     # News, analyst ratings, sentiment
++│   └── risk_assessor/         # Volatility, beta, risk metrics
++│       ├── agent.py           # A2A server with ADK agent + MCP tools
++│       ├── schema.py          # Pydantic models for response validation
++│       └── pyproject.toml     # Dependencies: google-adk, a2a-sdk
++├── hosts/multiagent/          # Host orchestration layer
++│   ├── host_agent.py          # Main orchestrator with RemoteAgentConnections
++│   └── remote_agent_connection.py  # A2A client wrapper for remote agents
++├── demo/ui/                   # Mesop web interface
++│   ├── main.py                # FastAPI + Mesop app entry point
++│   ├── components/            # UI components (dialogs, scaffolds)
++│   ├── pages/                 # UI pages (conversation, agent list, events)
++│   ├── service/               # Backend services (ConversationServer)
++│   └── state/                 # Application state management
++├── extensions/timestamp/      # A2A extension for timestamping
++├── docs/                      # Architecture and design docs
++├── run_all.sh                 # Start all services with health checks
++├── stop_all.sh                # Stop all services gracefully
++└── pyproject.toml             # Workspace configuration with UV
++```
++
++## Parallel Execution (NEW!)
++
++### Overview
++
++The system now implements **parallel agent execution** via the `analyze_stock_parallel` tool in the Host Agent, providing a **70% performance improvement** (41s → 12s).
++
++### How It Works
++
++**File**: `hosts/multiagent/host_agent.py`
++
++The `analyze_stock_parallel` method uses `asyncio.gather` to query all 4 analysts simultaneously:
++
++```python
++async def analyze_stock_parallel(self, ticker: str, tool_context: ToolContext):
++    """Query all 4 analysts in parallel using asyncio.gather"""
++    agent_names = ['technical_analyst', 'fundamental_analyst',
++                   'sentiment_analyst', 'risk_assessor']
++
++    tasks = [query_agent(name) for name in agent_names]
++    results = await asyncio.gather(*tasks)
++
++    return formatted_results
++```
++
++### Key Technical Details
++
++1. **Gemini LLM automatically selects the parallel tool** based on instruction preferences
++2. **Host Agent instruction** (`root_instruction`) guides Gemini to prefer `analyze_stock_parallel`
++3. **Each agent still runs independently** - no code changes needed in specialist agents
++4. **Error handling** per agent - one agent failure doesn't block others
++5. **HTTP timeout increased to 60s** in `demo/ui/main.py` to accommodate parallel execution
++
++### Implementation Location
++
++- **Tool definition**: `hosts/multiagent/host_agent.py:273-345`
++- **Tool registration**: `hosts/multiagent/host_agent.py:107-111` (in tools list)
++- **Instruction update**: `hosts/multiagent/host_agent.py:147-161` (workflow section)
++
++### Why This Works
++
++**Before (Sequential)**:
++- Gemini calls `send_message("technical_analyst")` → waits for response
++- Gemini calls `send_message("fundamental_analyst")` → waits for response
++- Gemini calls `send_message("sentiment_analyst")` → waits for response
++- Gemini calls `send_message("risk_assessor")` → waits for response
++- Total: 10 + 12 + 8 + 11 = 41 seconds
++
++**After (Parallel)**:
++- Gemini calls `analyze_stock_parallel(ticker="AAPL")` → single call
++- Host Agent launches 4 parallel asyncio tasks via `asyncio.gather`
++- All agents execute simultaneously
++- Total: max(10, 12, 8, 11) = 12 seconds
++
++### Research Validation
++
++Based on web research (December 2025):
++- ✅ **Google ADK** officially supports parallel execution via `ParallelAgent`
++- ✅ **Gemini API** supports parallel function calling since May 2024
++- ✅ **A2A Protocol** natively supports parallel task execution
++- ✅ **asyncio.gather** is the recommended Python pattern for concurrent execution
++
++### References
++
++- [Google ADK - Parallel Agents](https://google.github.io/adk-docs/agents/workflow-agents/parallel-agents/)
++- [Gemini Parallel Function Calling](https://docs.cloud.google.com/vertex-ai/generative-ai/docs/samples/generativeaionvertexai-function-calling-generate-parallel-calls)
++- [A2A Protocol Specification](https://a2a-protocol.org/latest/specification/)
++
++## Development Patterns
++
++### Creating a New Agent
++
++1. Copy an existing agent directory as template
++2. Update `agent.py` with new specialist instructions
++3. Modify port in startup commands (avoid conflicts)
++4. Define schema in `schema.py` for response validation
++5. Add to workspace in root `pyproject.toml` members
++6. Update `run_all.sh` and `stop_all.sh` with new agent
++
++### Testing Agent Responses
++
++Agents must return responses in this format:
++```json
++{
++  "analysis_text": "Markdown formatted analysis...",
++  "artifacts": {
++    "artifact_name": {
++      "description": "What this data represents",
++      "data": { "key": "value" }
++    }
++  },
++  "metadata": {
++    "ticker": "AAPL",
++    "analysis_type": "technical"
++  }
++}
++```
++
++Use `test_simple.py` to test JSON format without MCP calls.
++Use `test_artifacts.py` to test with actual Yahoo Finance data.
++
++### MCP Integration
++
++All agents connect to Yahoo Finance MCP via stdio:
++```python
++McpToolset(
++    connection_params=StdioConnectionParams(
++        command='uvx',
++        args=['yfmcp'],
++        env={**os.environ}
++    )
++)
++```
++
++Available MCP tools:
++- `get_price_history`: Historical prices and trends
++- `get_technical_indicators`: RSI, MACD, moving averages
++- `get_fundamentals`: P/E ratio, earnings, revenue
++- `get_news_sentiment`: News articles and sentiment scores
++
++### Agent Instructions Best Practices
++
++Each agent's instruction should:
++1. Define the specialist role clearly
++2. List available MCP tools and their usage
++3. Provide analysis framework (what to analyze)
++4. Specify output format requirements
++5. Include the CRITICAL JSON output requirement at the end
++
++## Common Issues
++
++### Port Already in Use
++```bash
++./stop_all.sh
++# If still issues:
++pkill -9 -f "uv run"
++```
++
++### Agent Not Loading in UI
++1. Verify agent is running: `lsof -i :10101`
++2. Check agent card: `curl http://localhost:10101/.well-known/agent-card.json`
++3. Review logs: `tail -f /tmp/technical_analyst.log`
++
++### MCP Connection Failures
++- Ensure `yfmcp` is installed: `uvx yfmcp --help`
++- Check environment variables are set correctly
++- MCP servers use stdio, ensure no stdout pollution in agent code
++
++### UI Not Connecting to Agents
++- Agents must be started BEFORE adding them in UI
++- Use exact address format: `localhost:10101` (not `http://`)
++- Check browser console for A2A protocol errors
++
++## Testing the System
++
++1. Start all services: `./run_all.sh`
++2. Open UI: `http://localhost:12000`
++3. Click robot icon to add agents
++4. Add all 4 agents (10101, 10102, 10103, 10104)
++5. Test with queries like:
++   - "삼성전자 주가 분석해줘" (Korean)
++   - "Analyze Apple stock"
++   - "Should I invest in Tesla?"
+diff --git a/agents/fundamental_analyst/agent.py b/agents/fundamental_analyst/agent.py
+index e1c7af50e87ed0dddb70f7cc28dbd40e348665f2..3d0d2ca7b0ffeb11383b9d44ebf0ecbefb35751b 100644
+--- a/agents/fundamental_analyst/agent.py
++++ b/agents/fundamental_analyst/agent.py
+@@ -28,44 +28,18 @@ root_agent = Agent(
+     name='fundamental_analyst',
+     model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert fundamental analyst specializing in financial statements, valuation metrics, and company analysis',
+-    instruction="""You are an expert Fundamental Analyst for stock markets.
+-
+-    **Your Goal**: Analyze the financial health, valuation, and growth prospects of a given stock ticker.
+-
+-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch financial data.
+-    - Use `get_stock_data` to find P/E ratio, market cap, financial metrics.
+-    - Use `get_financial_statements` to analyze income statement, balance sheet, cash flow.
+-
+-    **Analysis Framework**:
+-    1. **Valuation**: Is the stock overvalued or undervalued? (P/E, P/B, PEG ratios).
+-    2. **Financial Health**: Strong balance sheet? (Debt-to-Equity, Current Ratio, Cash reserves).
+-    3. **Growth**: Revenue and earnings growth trends (YoY, QoQ).
+-    4. **Profitability**: ROE, ROA, Operating Margin, Net Margin.
+-
+-    **Output Format**:
+-    Provide a detailed fundamental analysis report in markdown format.
+-
+-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
+-    ```json
+-    {
+-      "ticker": "string",
+-      "valuation": "Undervalued" | "Fairly Valued" | "Overvalued",
+-      "pe_ratio": float,
+-      "revenue_growth_yoy": float,
+-      "roe": float,
+-      "debt_to_equity": float,
+-      "recommendation": "Strong Buy" | "Buy" | "Hold" | "Sell" | "Strong Sell",
+-      "analysis_content": "string (Your full markdown analysis report goes here)"
+-    }
+-    ```
+-    Ensure the `analysis_content` field contains the complete text of your analysis.
+-    """,
++    instruction="""Fundamental analyst. Use yfmcp tools (get_stock_data, get_financial_statements).
++Analyze: valuation (P/E, P/B), financial health (D/E ratio), growth (revenue YoY), profitability (ROE).
++Output: markdown report + JSON block at end:
++```json
++{"ticker":"str","valuation":"Undervalued|Fairly Valued|Overvalued","pe_ratio":float,"revenue_growth_yoy":float,"roe":float,"debt_to_equity":float,"recommendation":"Strong Buy|Buy|Hold|Sell|Strong Sell","analysis_content":"full report"}
++```""",
+     tools=[
+         McpToolset(
+             connection_params=StdioConnectionParams(
+                 server_params=StdioServerParameters(
+                     command='uvx',
+-                    args=['yfmcp@latest'],
++                    args=['yfmcp'],
+                 ),
+                 timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+             ),
+diff --git a/agents/risk_assessor/agent.py b/agents/risk_assessor/agent.py
+index dc4d3a1604735e818c987284c9478d46c53991a3..55dd7ca987a95e13d71e314d0486b155150852c7 100644
+--- a/agents/risk_assessor/agent.py
++++ b/agents/risk_assessor/agent.py
+@@ -29,43 +29,18 @@ root_agent = Agent(
+     name='risk_assessor',
+     model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert risk analyst specializing in volatility, beta, VIX, and portfolio risk metrics',
+-    instruction="""You are an expert Risk Assessor for stock markets.
+-
+-    **Your Goal**: Analyze the volatility, downside risk, and risk-adjusted returns of a given stock ticker.
+-
+-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch price history and risk metrics.
+-    - Use `get_price_history` to calculate volatility and drawdowns.
+-    - Use `get_stock_data` to find Beta and other risk metrics.
+-
+-    **Analysis Framework**:
+-    1. **Volatility**: How much does the stock price fluctuate? (Standard Deviation, ATR).
+-    2. **Market Risk (Beta)**: How does it move relative to the market? (Beta > 1 is high risk).
+-    3. **Downside Risk**: What is the Maximum Drawdown in the last year?
+-    4. **Risk-Adjusted Return**: Is the return worth the risk? (Sharpe Ratio).
+-
+-    **Output Format**:
+-    Provide a detailed risk assessment report in markdown format.
+-    
+-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
+-    ```json
+-    {
+-      "ticker": "string",
+-      "risk_level": "Low" | "Moderate" | "High" | "Very High",
+-      "beta": float,
+-      "volatility": float,
+-      "max_drawdown": float,
+-      "sharpe_ratio": float,
+-      "analysis_content": "string (Your full markdown analysis report goes here)"
+-    }
+-    ```
+-    Ensure the `analysis_content` field contains the complete text of your analysis.
+-    """,
++    instruction="""Risk assessor. Use yfmcp tools (get_price_history, get_stock_data).
++Analyze: volatility, beta, max drawdown, sharpe ratio.
++Output: markdown report + JSON block at end:
++```json
++{"ticker":"str","risk_level":"Low|Moderate|High|Very High","beta":float,"volatility":float,"max_drawdown":float,"sharpe_ratio":float,"analysis_content":"full report"}
++```""",
+     tools=[
+         McpToolset(
+             connection_params=StdioConnectionParams(
+                 server_params=StdioServerParameters(
+                     command='uvx',
+-                    args=['yfmcp@latest'],
++                    args=['yfmcp'],
+                 ),
+                 timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+             ),
+diff --git a/agents/sentiment_analyst/agent.py b/agents/sentiment_analyst/agent.py
+index 40fda7280e2bbe0c93b85662f75d63d0c029f89d..da0f161bb99c666eded0d218c316d34d1a55bf6a 100644
+--- a/agents/sentiment_analyst/agent.py
++++ b/agents/sentiment_analyst/agent.py
+@@ -29,42 +29,18 @@ root_agent = Agent(
+     name='sentiment_analyst',
+     model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert sentiment analyst specializing in news analysis, analyst ratings, and market mood',
+-    instruction="""You are an expert Sentiment Analyst for stock markets.
+-
+-    **Your Goal**: Analyze the market sentiment, news, and analyst ratings for a given stock ticker.
+-
+-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch news and analyst data.
+-    - Use `get_news` to find recent headlines and articles.
+-    - Use `get_stock_data` to find analyst recommendations (buy/sell/hold).
+-
+-    **Analysis Framework**:
+-    1. **News Sentiment**: Are recent headlines positive, negative, or neutral?
+-    2. **Analyst Ratings**: What do Wall Street analysts recommend? (Strong Buy, Buy, Hold, Sell).
+-    3. **Market Mood**: Is the general market environment favoring this sector?
+-    4. **Catalysts**: Are there upcoming events (earnings, product launches) driving sentiment?
+-
+-    **Output Format**:
+-    Provide a detailed sentiment analysis report in markdown format.
+-    
+-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
+-    ```json
+-    {
+-      "ticker": "string",
+-      "sentiment_score": float,
+-      "sentiment_verdict": "Bullish" | "Bearish" | "Neutral",
+-      "analyst_consensus": "string",
+-      "top_headlines": ["string"],
+-      "analysis_content": "string (Your full markdown analysis report goes here)"
+-    }
+-    ```
+-    Ensure the `analysis_content` field contains the complete text of your analysis.
+-    """,
++    instruction="""Sentiment analyst. Use yfmcp tools (get_news, get_stock_data).
++Analyze: news sentiment, analyst ratings, market mood, upcoming catalysts.
++Output: markdown report + JSON block at end:
++```json
++{"ticker":"str","sentiment_score":float,"sentiment_verdict":"Bullish|Bearish|Neutral","analyst_consensus":"str","top_headlines":["str"],"analysis_content":"full report"}
++```""",
+     tools=[
+         McpToolset(
+             connection_params=StdioConnectionParams(
+                 server_params=StdioServerParameters(
+                     command='uvx',
+-                    args=['yfmcp@latest'],
++                    args=['yfmcp'],
+                 ),
+                 timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+             ),
+diff --git a/agents/technical_analyst/agent.py b/agents/technical_analyst/agent.py
+index 5509bb2e4a96fbfc644911b5fbedf79bac62511a..c18f1799a564f24aabe19d535a907bea46fc583e 100644
+--- a/agents/technical_analyst/agent.py
++++ b/agents/technical_analyst/agent.py
+@@ -27,44 +27,18 @@ root_agent = Agent(
+     name='technical_analyst',
+     model=Gemini(model='gemini-2.0-flash-001', api_key=os.getenv('GOOGLE_API_KEY')),
+     description='Expert technical analyst specializing in chart patterns, indicators, and price action analysis',
+-    instruction="""You are an expert Technical Analyst for stock markets.
+-
+-    **Your Goal**: Analyze the price action, trends, and technical indicators of a given stock ticker.
+-
+-    **Tools**: You have access to `yfmcp` (Yahoo Finance MCP) to fetch price history and technical data.
+-    - Use `get_price_history` to see trends.
+-    - Use `get_technical_indicators` (if available) or calculate them from price history.
+-
+-    **Analysis Framework**:
+-    1. **Trend Analysis**: Identify the primary trend (Uptrend, Downtrend, Sideways) using Moving Averages (SMA/EMA).
+-    2. **Momentum**: Check RSI (Relative Strength Index) and MACD (Moving Average Convergence Divergence).
+-    3. **Support & Resistance**: Identify key price levels where the stock might bounce or break through.
+-    4. **Chart Patterns**: Look for common patterns (Head & Shoulders, Double Top/Bottom, Flags, etc.).
+-
+-    **Output Format**:
+-    Provide a detailed technical analysis report in markdown format.
+-    
+-    **CRITICAL: You MUST end your response with a JSON block containing the following structured data:**
+-    ```json
+-    {
+-      "ticker": "string",
+-      "current_price": float,
+-      "trend": "Bullish" | "Bearish" | "Neutral",
+-      "rsi": float,
+-      "macd_signal": "string",
+-      "support_levels": [float],
+-      "resistance_levels": [float],
+-      "analysis_content": "string (Your full markdown analysis report goes here)"
+-    }
+-    ```
+-    Ensure the `analysis_content` field contains the complete text of your analysis.
+-    """,
++    instruction="""Technical analyst. Use yfmcp tools (get_price_history, get_technical_indicators).
++Analyze: trend (MA), momentum (RSI, MACD), support/resistance levels.
++Output: markdown report + JSON block at end:
++```json
++{"ticker":"str","current_price":float,"trend":"Bullish|Bearish|Neutral","rsi":float,"macd_signal":"str","support_levels":[float],"resistance_levels":[float],"analysis_content":"full report"}
++```""",
+     tools=[
+         McpToolset(
+             connection_params=StdioConnectionParams(
+                 server_params=StdioServerParameters(
+                     command='uvx',
+-                    args=['yfmcp@latest'],
++                    args=['yfmcp'],
+                 ),
+                 timeout_seconds=30,  # Increase timeout for Yahoo Finance API calls
+             ),
+diff --git a/demo/ui/main.py b/demo/ui/main.py
+index 676f07b790e16b6c8aaae5a0ead0085d2e3ed374..ff2b59b7d267ad07add266904037dfa3f33ae9be 100644
+--- a/demo/ui/main.py
++++ b/demo/ui/main.py
+@@ -144,7 +144,7 @@ class HTTPXClientWrapper:
+ 
+     def start(self):
+         """Instantiate the client. Call from the FastAPI startup hook."""
+-        self.async_client = httpx.AsyncClient(timeout=30)
++        self.async_client = httpx.AsyncClient(timeout=60)
+ 
+     async def stop(self):
+         """Gracefully shutdown. Call from FastAPI shutdown hook."""
+diff --git a/docs/study_archive/01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md b/docs/study_archive/01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md
+deleted file mode 100644
+index 3dff70ac1391adb1aa7d0a4574c386ca35b0f091..0000000000000000000000000000000000000000
+--- a/docs/study_archive/01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md
++++ /dev/null
+@@ -1,546 +0,0 @@
+-# 📚 Multi-Agent System Architecture Patterns Study Guide
+-
+-**Date**: 2025-12-03
+-**Topic**: Multi-Agent System Design Patterns for AI Applications
+-**Context**: Financial Analysis System Architecture Review
+-
+----
+-
+-## 🎯 핵심 교훈
+-
+-> **중요한 직관**: "정보 수집 따로, 분석 따로, 종합 따로 해야 한다"
+->
+-> 이 직관이 **정확했습니다**. 업계 표준 아키텍처와 완전히 일치합니다.
+-
+----
+-
+-## 📖 멀티 에이전트 시스템 설계 패턴 (2025)
+-
+-### 1. **Hierarchical Task Decomposition Pattern** (계층적 작업 분해)
+-
+-**정의**: 복잡한 문제를 여러 단계로 분해하고 각 단계를 전문 에이전트에게 위임
+-
+-**구조**:
+-```
+-User Query
+-    ↓
+-Coordinator Agent (조율자)
+-    ↓
+-├─→ Information Gathering Agents (정보 수집)
+-├─→ Analysis Agents (분석)
+-└─→ Synthesis Agent (종합)
+-```
+-
+-**사용 사례**:
+-- 연구 및 리포트 작성
+-- 금융 분석 및 투자 조언
+-- 법률 문서 실사 (Due Diligence)
+-
+-**장점**:
+-- ✅ 명확한 책임 분리 (Separation of Concerns)
+-- ✅ 각 단계별 최적화 가능
+-- ✅ 디버깅 및 유지보수 용이
+-
+-**출처**: [Google Cloud Architecture](https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system)
+-
+----
+-
+-### 2. **Orchestrator-Worker Pattern** (조율자-작업자)
+-
+-**정의**: 중앙 조율자가 작업을 관리하고 전문 작업자 에이전트들에게 위임
+-
+-**구조**:
+-```
+-┌──────────────────────┐
+-│  Orchestrator Agent  │ ← 전체 작업 흐름 관리
+-│  (Central Command)   │
+-└──────────┬───────────┘
+-           │
+-    ┌──────┼──────┬──────┐
+-    ↓      ↓      ↓      ↓
+- Worker  Worker Worker Worker
+-   A       B      C      D
+-```
+-
+-**Orchestrator의 책임**:
+-1. 사용자 요청 분석
+-2. 작업 분해 및 우선순위 설정
+-3. 적절한 Worker 에이전트 선택
+-4. 병렬 실행 조율
+-5. 결과 수집 및 종합
+-
+-**Worker의 책임**:
+-- 단일 전문 작업에만 집중
+-- Orchestrator의 지시 대기
+-- 결과 반환
+-
+-**장점**:
+-- ✅ 통합된 거버넌스 및 권한 관리
+-- ✅ 전체 작업 흐름 가시성 확보
+-- ✅ 에러 처리 및 재시도 로직 중앙화
+-
+-**단점**:
+-- ⚠️ Orchestrator가 단일 실패 지점(Single Point of Failure)
+-- ⚠️ Orchestrator의 복잡도 증가
+-
+-**출처**: [Azure AI Agent Design Patterns](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns)
+-
+----
+-
+-### 3. **Multi-Agent Parallel Pattern** (병렬 멀티 에이전트)
+-
+-**정의**: 여러 전문 에이전트가 독립적으로 병렬 실행하고 결과를 종합
+-
+-**구조**:
+-```
+-User Query → Dispatcher
+-                 │
+-    ┌────────────┼────────────┐
+-    ↓            ↓            ↓
+- Agent A      Agent B      Agent C
+- (독립 실행)  (독립 실행)  (독립 실행)
+-    │            │            │
+-    └────────────┼────────────┘
+-                 ↓
+-            Synthesizer
+-```
+-
+-**특징**:
+-- 각 에이전트가 독립적으로 작업 수행
+-- 결과를 병합하여 최종 답변 생성
+-- 레이턴시 최소화 (병렬 처리)
+-
+-**사용 사례**:
+-- 다양한 관점에서 분석 필요한 경우
+-- 여러 데이터 소스에서 정보 수집
+-- 독립적인 검증 필요한 경우
+-
+-**장점**:
+-- ✅ 실행 시간 단축 (병렬 처리)
+-- ✅ 다양한 관점 확보
+-- ✅ 한 에이전트 실패가 전체에 영향 최소화
+-
+-**출처**: [Databricks Agent System Design](https://docs.databricks.com/aws/en/generative-ai/guide/agent-system-design-patterns)
+-
+----
+-
+-### 4. **Event-Driven Multi-Agent Pattern** (이벤트 주도)
+-
+-**정의**: 에이전트들이 이벤트를 발행하고 구독하여 자율적으로 반응
+-
+-**구조**:
+-```
+-Event Bus (중앙 메시지 브로커)
+-    ↑         ↑         ↑
+-    │         │         │
+- Agent A   Agent B   Agent C
+- (Publish) (Subscribe)(Both)
+-```
+-
+-**특징**:
+-- 에이전트 간 직접 통신 불필요
+-- 느슨한 결합 (Loose Coupling)
+-- 비동기 처리
+-
+-**사용 사례**:
+-- 실시간 모니터링 시스템
+-- 복잡한 워크플로우
+-- 동적 에이전트 추가/제거
+-
+-**장점**:
+-- ✅ 확장성 우수
+-- ✅ 에이전트 독립성 보장
+-- ✅ 동적 시스템 변경 용이
+-
+-**단점**:
+-- ⚠️ 디버깅 어려움
+-- ⚠️ 이벤트 순서 보장 어려움
+-
+-**출처**: [Event-Driven Multi-Agent Systems](https://www.confluent.io/blog/event-driven-multi-agent-systems/)
+-
+----
+-
+-## 💼 금융 분석 시스템의 올바른 설계
+-
+-### ✅ **3-Layer Architecture for Financial Analysis**
+-
+-```
+-┌─────────────────────────────────────────────────┐
+-│  Layer 3: Synthesis & Reporting                 │
+-│  ┌────────────────────────────────────┐         │
+-│  │  Investment Advisor Agent          │         │
+-│  │  - 모든 분석 통합                   │         │
+-│  │  - 최종 투자 추천 생성              │         │
+-│  │  - 리포트 작성                     │         │
+-│  └────────────────────────────────────┘         │
+-└─────────────────┬───────────────────────────────┘
+-                  ↑ (분석 리포트들)
+-┌─────────────────┴───────────────────────────────┐
+-│  Layer 2: Analysis Agents                       │
+-│  ┌──────────┐ ┌──────────┐ ┌──────────┐        │
+-│  │Technical │ │Fundamental│ │Sentiment │        │
+-│  │Analyst   │ │Analyst    │ │Analyst   │        │
+-│  └──────────┘ └──────────┘ └──────────┘        │
+-│  ┌──────────┐                                   │
+-│  │Risk      │                                   │
+-│  │Assessor  │                                   │
+-│  └──────────┘                                   │
+-└─────────────────┬───────────────────────────────┘
+-                  ↑ (수집된 데이터)
+-┌─────────────────┴───────────────────────────────┐
+-│  Layer 1: Data Collection Agents                │
+-│  ┌──────────────┐ ┌──────────────┐             │
+-│  │Market Data   │ │News Data     │             │
+-│  │Collector     │ │Collector     │             │
+-│  │(MCP: yfmcp)  │ │(MCP: yfmcp)  │             │
+-│  └──────────────┘ └──────────────┘             │
+-│  ┌──────────────┐ ┌──────────────┐             │
+-│  │Financial     │ │Analyst Rating│             │
+-│  │Collector     │ │Collector     │             │
+-│  └──────────────┘ └──────────────┘             │
+-└─────────────────────────────────────────────────┘
+-```
+-
+-### **각 Layer의 역할**
+-
+-#### **Layer 1: Data Collection (정보 수집)**
+-**책임**:
+-- 외부 API/MCP 서버에서 raw data 수집
+-- 데이터 정규화 및 구조화
+-- 캐싱 및 중복 요청 방지
+-
+-**에이전트 예시**:
+-- Market Data Collector: 주가, 거래량, 시가총액
+-- News Collector: 뉴스 기사, 헤드라인
+-- Financial Statement Collector: 재무제표, 수익 보고서
+-- Analyst Rating Collector: 애널리스트 평가
+-
+-**도구**: MCP 서버 (Yahoo Finance, Bloomberg Terminal, etc.)
+-
+-**출력 형식**:
+-```json
+-{
+-  "ticker": "AAPL",
+-  "price": 150.25,
+-  "market_cap": 2500000000000,
+-  "news": [...],
+-  "financials": {...}
+-}
+-```
+-
+----
+-
+-#### **Layer 2: Analysis (분석)**
+-**책임**:
+-- Layer 1에서 수집된 데이터를 **입력으로 받음** (MCP 직접 호출 X)
+-- 전문 영역에 대한 심층 분석
+-- 구조화된 분석 리포트 생성
+-
+-**에이전트 예시**:
+-1. **Technical Analyst**:
+-   - 입력: 가격 데이터, 거래량
+-   - 분석: RSI, MACD, 차트 패턴
+-   - 출력: 기술적 전망 (Bullish/Bearish/Neutral)
+-
+-2. **Fundamental Analyst**:
+-   - 입력: 재무제표, 수익 데이터
+-   - 분석: P/E ratio, ROE, 성장률
+-   - 출력: 밸류에이션 평가 (Undervalued/Overvalued)
+-
+-3. **Sentiment Analyst**:
+-   - 입력: 뉴스 기사, 애널리스트 평가
+-   - 분석: 뉴스 센티먼트, 시장 심리
+-   - 출력: 센티먼트 점수 (Positive/Negative)
+-
+-4. **Risk Assessor**:
+-   - 입력: 가격 변동성, 베타 데이터
+-   - 분석: 리스크 지표, 최대 낙폭
+-   - 출력: 리스크 레벨 (Low/High)
+-
+-**중요**: ❌ 이 Layer의 에이전트는 MCP 서버에 직접 연결하지 않음
+-
+----
+-
+-#### **Layer 3: Synthesis & Reporting (종합)**
+-**책임**:
+-- Layer 2의 모든 분석 리포트 수집
+-- 상충되는 의견 조율
+-- 통합된 투자 추천 생성
+-- 사용자 친화적인 리포트 작성
+-
+-**에이전트 예시**:
+-- Investment Advisor Agent
+-- Report Generator Agent
+-
+-**출력 예시**:
+-```
+-📊 APPLE INC. (AAPL) - 종합 투자 분석
+-
+-📈 기술적 분석: Bullish (Technical Analyst)
+-- RSI 65, MACD 상승 크로스
+-- 지지선: $145, 저항선: $160
+-
+-⚖️ 펀더멘털 분석: Fairly Valued (Fundamental Analyst)
+-- P/E 28.5x (섹터 평균: 25x)
+-- 매출 성장률: 8% YoY
+-
+-📰 센티먼트 분석: Positive (Sentiment Analyst)
+-- 75% 애널리스트 Buy 추천
+-- 최근 AI 제품 출시 호재
+-
+-⚠️ 리스크 평가: Moderate (Risk Assessor)
+-- 베타: 1.2, 변동성: 22%
+-- 최대 낙폭: -32% (2022)
+-
+-🎯 최종 추천: BUY
+-- 목표가: $165 (10% 상승 여력)
+-- 적정 비중: 5-8% of portfolio
+-- 진입가: $145-150
+-- 손절가: $138
+-```
+-
+----
+-
+-## 🔄 워크플로우 예시
+-
+-### **사용자 질문**: "Should I invest in Apple stock?"
+-
+-#### **Phase 1: Data Collection (병렬 실행)**
+-```python
+-# Orchestrator가 데이터 수집 에이전트들에게 위임
+-results = await asyncio.gather(
+-    market_data_collector.get_data("AAPL"),
+-    news_collector.get_news("AAPL"),
+-    financial_collector.get_financials("AAPL"),
+-    rating_collector.get_ratings("AAPL")
+-)
+-```
+-⏱️ 실행 시간: ~2-3초 (병렬)
+-
+-#### **Phase 2: Analysis (병렬 실행)**
+-```python
+-# Orchestrator가 수집된 데이터를 분석 에이전트들에게 전달
+-analyses = await asyncio.gather(
+-    technical_analyst.analyze(results['market_data']),
+-    fundamental_analyst.analyze(results['financials']),
+-    sentiment_analyst.analyze(results['news']),
+-    risk_assessor.analyze(results['market_data'])
+-)
+-```
+-⏱️ 실행 시간: ~5-10초 (병렬)
+-
+-#### **Phase 3: Synthesis**
+-```python
+-# Orchestrator가 모든 분석을 종합
+-final_report = await investment_advisor.synthesize(analyses)
+-```
+-⏱️ 실행 시간: ~3-5초
+-
+-**총 실행 시간**: ~10-18초 (병렬 처리 덕분)
+-
+----
+-
+-## 🚫 안티패턴: 잘못된 설계
+-
+-### ❌ **문제 1: 책임 혼재 (Mixed Responsibilities)**
+-
+-```python
+-# 잘못된 예: 분석 에이전트가 데이터 수집도 함께 수행
+-class TechnicalAnalyst:
+-    def __init__(self):
+-        self.mcp_client = MCPClient()  # ❌ 분석 에이전트가 MCP 연결
+-
+-    def analyze(self, ticker):
+-        # ❌ 데이터 수집과 분석을 동시에
+-        data = self.mcp_client.get_stock_data(ticker)
+-        analysis = self._calculate_indicators(data)
+-        return analysis
+-```
+-
+-**문제점**:
+-1. 같은 데이터를 여러 에이전트가 중복 요청
+-2. 데이터 수집 로직이 여러 곳에 분산
+-3. 캐싱 및 최적화 어려움
+-
+----
+-
+-### ❌ **문제 2: 종합 부재 (No Synthesis)**
+-
+-```python
+-# 잘못된 예: 각 에이전트가 독립적으로 결론 내림
+-technical_result = "BUY"
+-fundamental_result = "SELL"  # ← 상충!
+-sentiment_result = "HOLD"
+-
+-# 누가 최종 결정을 하나? 🤔
+-```
+-
+-**문제점**:
+-1. 상충되는 의견 조율 불가
+-2. 사용자가 직접 판단해야 함
+-3. 시스템의 가치 하락
+-
+----
+-
+-## 📊 올바른 설계 vs 잘못된 설계
+-
+-| 측면 | ✅ 올바른 설계 | ❌ 잘못된 설계 |
+-|------|--------------|---------------|
+-| **책임 분리** | 수집/분석/종합 명확히 분리 | 에이전트가 여러 역할 담당 |
+-| **데이터 흐름** | 단방향 (수집→분석→종합) | 각 에이전트가 직접 수집 |
+-| **중복 요청** | 한 번만 수집 (Layer 1) | 4개 에이전트가 각각 요청 |
+-| **캐싱** | 중앙화된 캐싱 가능 | 캐싱 어려움 |
+-| **종합** | 전담 Synthesizer 존재 | 종합 로직 부재 |
+-| **디버깅** | 각 Layer 독립 테스트 가능 | 복잡한 의존성 |
+-| **확장성** | 새 수집/분석 에이전트 추가 용이 | 새 에이전트마다 MCP 설정 필요 |
+-
+----
+-
+-## 🏢 실제 사례 연구
+-
+-### **Case Study 1: Schroders 금융 분석 시스템**
+-
+-**회사**: Schroders (영국 자산운용사)
+-**과제**: 복잡한 금융 리서치 자동화
+-
+-**아키텍처**:
+-```
+-1. Data Collection Agents
+-   - 재무 데이터, 시장 데이터, 뉴스 수집
+-
+-2. Processing Agents
+-   - 각 데이터 타입별 전문 분석
+-
+-3. Decision Support Agent
+-   - 모든 분석 통합 및 투자 조언 생성
+-```
+-
+-**결과**:
+-- ✅ 리서치 시간: 수일 → 수분
+-- ✅ 더 많은 기업 스크리닝 가능
+-- ✅ 투자 기회 발견 증가
+-
+-**출처**: [Schroders Multi-Agent Assistant](https://cloud.google.com/blog/topics/customers/how-schroders-built-its-multi-agent-financial-analysis-research-assistant)
+-
+----
+-
+-### **Case Study 2: Anthropic 멀티 에이전트 리서치 시스템**
+-
+-**회사**: Anthropic
+-**과제**: 고품질 리서치 자동화
+-
+-**아키텍처**:
+-```
+-1. LeadResearcher (Orchestrator)
+-   - 리서치 전략 수립
+-   - 서브 에이전트 생성 및 관리
+-
+-2. SubResearcher Agents (Workers)
+-   - 각자 독립적으로 웹 검색
+-   - 특정 주제에 집중
+-
+-3. CitationAgent (Post-processor)
+-   - 인용 위치 식별 및 포맷팅
+-```
+-
+-**핵심 인사이트**:
+-> "LeadResearcher가 서브 에이전트를 생성하고, 각 서브 에이전트가 독립적으로 리서치 수행 후, LeadResearcher가 결과를 종합하여 더 많은 리서치가 필요한지 결정"
+-
+-**출처**: [Anthropic Multi-Agent Research System](https://www.anthropic.com/engineering/multi-agent-research-system)
+-
+----
+-
+-## 🔑 핵심 설계 원칙
+-
+-### 1. **Separation of Concerns (관심사의 분리)**
+-각 에이전트는 단일 책임만 가져야 함
+-```
+-✅ DO: MarketDataCollector는 데이터 수집만
+-❌ DON'T: TechnicalAnalyst가 데이터 수집 + 분석
+-```
+-
+-### 2. **Single Source of Truth (단일 진실 공급원)**
+-데이터는 한 곳에서만 수집
+-```
+-✅ DO: Layer 1에서 한 번 수집 → 모든 분석 에이전트에 전달
+-❌ DON'T: 각 분석 에이전트가 독립적으로 수집
+-```
+-
+-### 3. **Unidirectional Data Flow (단방향 데이터 흐름)**
+-데이터는 한 방향으로만 흐름
+-```
+-수집 → 분석 → 종합 → 사용자
+-(역방향 흐름 금지)
+-```
+-
+-### 4. **Orchestration over Choreography (조율 > 안무)**
+-중앙 조율자가 워크플로우 관리
+-```
+-✅ DO: Orchestrator가 전체 흐름 제어
+-❌ DON'T: 에이전트들이 서로 직접 통신 (복잡도 증가)
+-```
+-
+-### 5. **Parallel When Possible (가능하면 병렬)**
+-독립적인 작업은 병렬 실행
+-```python
+-# ✅ 좋음: 병렬 실행
+-results = await asyncio.gather(
+-    agent_a.run(),
+-    agent_b.run(),
+-    agent_c.run()
+-)
+-
+-# ❌ 나쁨: 순차 실행
+-result_a = await agent_a.run()
+-result_b = await agent_b.run()  # agent_a 끝날 때까지 대기
+-result_c = await agent_c.run()  # agent_b 끝날 때까지 대기
+-```
+-
+----
+-
+-## 📚 추가 학습 자료
+-
+-### **필독 문서**
+-1. [Google Cloud: Agentic AI Design Patterns](https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system)
+-2. [Microsoft Azure: AI Agent Orchestration Patterns](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns)
+-3. [Anthropic: Multi-Agent Research System](https://www.anthropic.com/engineering/multi-agent-research-system)
+-
+-### **실무 가이드**
+-4. [A2A Protocol Guide for Enterprise](https://www.kenility.com/blog/ai-tech-innovations/google-a2a-protocol-guide-ultimate-ai-agent-orchestration-strategy)
+-5. [Multi-Agent Systems in Finance](https://medium.com/@batuhansenerr/ai-powered-financial-analysis-multi-agent-systems-transform-data-into-insights-d94e4867d75d)
+-6. [Event-Driven Multi-Agent Systems](https://www.confluent.io/blog/event-driven-multi-agent-systems/)
+-
+-### **심화 학습**
+-7. [Multi-Agent Multi-LLM Systems Guide 2025](https://collabnix.com/multi-agent-multi-llm-systems-the-future-of-ai-architecture-complete-guide-2025/)
+-8. [Agentic AI Design Patterns](https://medium.com/@balarampanda.ai/agentic-ai-design-patterns-choosing-the-right-multimodal-multi-agent-architecture-2022-2025-046a37eb6dbe)
+-
+----
+-
+-## 🎓 학습 체크리스트
+-
+-스스로 이해했는지 확인해보세요:
+-
+-- [ ] 멀티 에이전트 시스템의 4가지 주요 패턴을 설명할 수 있는가?
+-- [ ] 금융 분석에서 3-Layer 아키텍처가 필요한 이유를 설명할 수 있는가?
+-- [ ] "분석 에이전트가 MCP에 직접 연결하면 안 되는 이유"를 설명할 수 있는가?
+-- [ ] Orchestrator-Worker 패턴의 장단점을 나열할 수 있는가?
+-- [ ] 병렬 실행이 가능한 경우와 순차 실행이 필요한 경우를 구분할 수 있는가?
+-- [ ] "Separation of Concerns" 원칙을 코드 예시로 설명할 수 있는가?
+-
+----
+-
+-## 💡 핵심 Takeaway
+-
+-> **"정보 수집, 분석, 종합을 분리하라"**
+->
+-> 이것이 멀티 에이전트 시스템 설계의 골든 룰입니다.
+->
+-> - 각 에이전트는 한 가지 일만 잘하면 됩니다
+-> - 데이터는 한 번만 수집합니다
+-> - 중앙 조율자가 전체 흐름을 관리합니다
+-> - 가능한 모든 것을 병렬로 실행합니다
+-
+----
+-
+-**마지막 업데이트**: 2025-12-03
+-**다음 스터디**: A2A Protocol 상세 분석, MCP 서버 아키텍처
+diff --git a/docs/study_archive/02_CURRENT_ARCHITECTURE_ANALYSIS.md b/docs/study_archive/02_CURRENT_ARCHITECTURE_ANALYSIS.md
+deleted file mode 100644
+index 3537626651347d7ad2f28557f9aa957ea001fb69..0000000000000000000000000000000000000000
+--- a/docs/study_archive/02_CURRENT_ARCHITECTURE_ANALYSIS.md
++++ /dev/null
+@@ -1,448 +0,0 @@
+-# 🔍 현재 아키텍처 분석 및 문제점 정리
+-
+-**Date**: 2025-12-03
+-**Project**: Stock Analysis Multi-Agent System
+-**Status**: Architecture Review & Refactoring Required
+-
+----
+-
+-## 📋 현재 구현 상태
+-
+-### **에이전트 구성**
+-
+-```
+-my-a2a-project/agents/
+-├── stock_analyst/          # ⚠️ 설계에 없는 에이전트
+-├── technical_analyst/      # ✅ 포트: 10101
+-├── fundamental_analyst/    # ✅ 포트: 10102
+-├── sentiment_analyst/      # ✅ 포트: 10103
+-└── risk_assessor/          # ✅ 포트: 10104
+-```
+-
+-**총 5개 에이전트** (설계는 4개)
+-
+----
+-
+-## ⚠️ 발견된 문제점
+-
+-### **문제 1: 포트 충돌**
+-
+-```python
+-# stock_analyst/agent.py:139
+-a2a_app = to_a2a(root_agent, port=int(os.getenv('PORT', '10101')))
+-
+-# technical_analyst/agent.py:145
+-a2a_app = to_a2a(root_agent, port=int(os.getenv('PORT', '10101')))
+-```
+-
+-**Stock Analyst**와 **Technical Analyst**가 둘 다 포트 **10101** 사용!
+-
+-**영향**:
+-- 두 에이전트를 동시에 실행할 수 없음
+-- 하나가 먼저 실행되면 다른 하나는 "Address already in use" 에러
+-
+-**해결책**:
+-1. Stock Analyst를 10105로 변경
+-2. 또는 Stock Analyst 제거 (설계에 없음)
+-
+----
+-
+-### **문제 2: Stock Analyst의 역할 불명확**
+-
+-**설계 문서에는 없는 에이전트**
+-
+-Stock Analyst의 instruction 분석 (agent.py:25-135):
+-```python
+-'''You are an expert stock market analyst with 20+ years of experience...
+-
+-Your expertise includes:
+-- Technical Analysis (RSI, MACD, Moving Averages)
+-- Fundamental Analysis (P/E, Financials, Valuation)
+-- Sentiment Analysis (News, Analyst Ratings)
+-- Risk Assessment (Volatility, Beta, VIX)
+-'''
+-```
+-
+-**발견**:
+-- Stock Analyst는 **올인원 에이전트**
+-- 4개 전문가의 역할을 혼자서 다 수행 가능
+-- 하지만 설계 문서에는 이런 에이전트가 없음
+-
+-**가능한 의도 추측**:
+-
+-#### **시나리오 A: Super Coordinator**
+-Stock Analyst가 4개 전문가를 조율하는 상위 에이전트?
+-```
+-User → Stock Analyst → [Technical, Fundamental, Sentiment, Risk]
+-                              ↓
+-                        Stock Analyst가 종합
+-```
+-❌ 문제: 그럼 Host Agent의 역할은?
+-
+-#### **시나리오 B: Quick Analysis Agent**
+-Stock Analyst는 간단한 질문용, 복잡한 질문은 4개 전문가에게 위임?
+-```
+-Simple Query → Stock Analyst (빠른 답변)
+-Complex Query → Host Agent → 4개 전문가
+-```
+-❌ 문제: 어떤 질문이 simple이고 complex인지 판단 기준은?
+-
+-#### **시나리오 C: 레거시/테스트용**
+-Stock Analyst는 초기 프로토타입이고 이제 불필요?
+-```
+-Stock Analyst (삭제 예정) ← 현재는 남아있음
+-```
+-✅ 가능성 높음: 설계 문서에도 없고 포트도 충돌
+-
+----
+-
+-### **문제 3: 아키텍처 레이어 불일치**
+-
+-#### **설계 의도 (3-Tier)**:
+-```
+-Tier 1: MCP Server (Data Source)
+-         ↓
+-Tier 2: 4 Specialized Agents (Analysis)
+-         ↓
+-Tier 3: Host Agent (Orchestration)
+-```
+-
+-#### **실제 구현**:
+-```
+-각 분석 에이전트가 개별적으로 MCP 연결
+-┌─────────────────┐
+-│ Technical Agt   │──→ MCP (yfmcp)
+-├─────────────────┤
+-│ Fundamental Agt │──→ MCP (yfmcp)
+-├─────────────────┤
+-│ Sentiment Agt   │──→ MCP (yfmcp)
+-├─────────────────┤
+-│ Risk Assessor   │──→ MCP (yfmcp)
+-└─────────────────┘
+-```
+-
+-**현재 구조**:
+-```python
+-# 모든 분석 에이전트가 MCP 도구 포함
+-tools=[
+-    McpToolset(
+-        connection_params=StdioConnectionParams(
+-            server_params=StdioServerParameters(
+-                command='uvx',
+-                args=['yfmcp@latest'],
+-            ),
+-        ),
+-    )
+-]
+-```
+-
+-**문제점**:
+-1. ❌ **책임 혼재**: 분석 에이전트가 데이터 수집도 함께 수행
+-2. ❌ **중복 요청**: 4개 에이전트가 같은 데이터를 각각 요청
+-3. ❌ **캐싱 불가**: 데이터 수집이 분산되어 캐싱 어려움
+-4. ❌ **Layer 분리 실패**: 수집과 분석이 섞여있음
+-
+-**업계 표준과 비교**:
+-
+-| 측면 | 업계 표준 | 현재 구현 | 일치 여부 |
+-|------|-----------|----------|----------|
+-| 데이터 수집 | Layer 1 전담 | 각 분석 에이전트가 수행 | ❌ |
+-| 분석 책임 | 데이터를 입력으로 받음 | MCP에서 직접 가져옴 | ❌ |
+-| 중복 방지 | 한 번만 수집 | 4번 수집 | ❌ |
+-
+----
+-
+-### **문제 4: 종합 에이전트 부재**
+-
+-**설계 의도**:
+-```
+-Host Agent가 4개 전문가의 분석을 종합하여 최종 리포트 생성
+-```
+-
+-**현재 상태**: ❓ (확인 필요)
+-- `hosts/multiagent/host_agent.py` 내용 미확인
+-- Host Agent가 종합 로직을 가지고 있는지 불명확
+-
+-**체크 사항**:
+-- [ ] Host Agent가 4개 에이전트 모두에게 위임하는가?
+-- [ ] Host Agent가 상충되는 의견을 조율하는가?
+-- [ ] Host Agent가 최종 투자 추천을 생성하는가?
+-
+----
+-
+-## 📊 설계 vs 구현 비교표
+-
+-| 구성요소 | 설계 | 구현 | 일치도 | 비고 |
+-|---------|------|------|--------|------|
+-| **에이전트 개수** | 4개 | 5개 | ⚠️ 80% | Stock Analyst 추가됨 |
+-| **Technical Analyst** | ✅ 10101 | ✅ 10101 | ✅ 100% | |
+-| **Fundamental Analyst** | ✅ 10102 | ✅ 10102 | ✅ 100% | |
+-| **Sentiment Analyst** | ✅ 10103 | ✅ 10103 | ✅ 100% | |
+-| **Risk Assessor** | ✅ 10104 | ✅ 10104 | ✅ 100% | |
+-| **Stock Analyst** | ❌ 없음 | ✅ 10101 | ❌ 불일치 | 포트 충돌 |
+-| **MCP 연결** | Host만 | 각 에이전트 | ❌ 불일치 | Layer 분리 실패 |
+-| **데이터 수집** | Layer 1 전담 | 분석 에이전트가 수행 | ❌ 불일치 | 중복 요청 발생 |
+-| **종합 로직** | Host Agent | ❓ 미확인 | ❓ | 확인 필요 |
+-| **Gemini 2.0 Flash** | ✅ | ✅ | ✅ 100% | |
+-| **전문성 구분** | ✅ | ✅ | ✅ 100% | "Stay in lane" 구현됨 |
+-
+-**전체 일치도**: 약 **60%**
+-
+----
+-
+-## 🎯 문제 우선순위
+-
+-### **P0 (즉시 해결 필요)**
+-1. **포트 충돌 해결**
+-   - Stock Analyst 제거 또는 포트 변경
+-   - 현재: 서비스 실행 불가능
+-
+-2. **Stock Analyst 역할 결정**
+-   - 유지할 것인가? → 역할 명확화 + 문서화 필요
+-   - 제거할 것인가? → 설계대로 4개 에이전트만 유지
+-
+-### **P1 (중요, 빠른 시일 내 해결)**
+-3. **아키텍처 레이어 분리**
+-   - 현재: 분석 에이전트가 MCP 직접 호출 (잘못됨)
+-   - 목표: Layer 1 (수집) / Layer 2 (분석) 분리
+-
+-4. **Host Agent 종합 로직 확인**
+-   - Host Agent가 제대로 조율하는지 검증
+-
+-### **P2 (개선 사항)**
+-5. **중복 요청 제거**
+-   - 데이터 수집 중앙화
+-   - 캐싱 메커니즘 추가
+-
+-6. **문서 업데이트**
+-   - 현재 구현과 설계 문서 일치시키기
+-
+----
+-
+-## 🔧 수정 방안
+-
+-### **Option 1: 설계 문서 따르기 (권장)** ⭐
+-
+-**변경 사항**:
+-```diff
+-agents/
+-- ├── stock_analyst/          # 🗑️ 삭제
+-  ├── technical_analyst/      # ✏️ MCP 제거, 데이터 입력으로 받음
+-  ├── fundamental_analyst/    # ✏️ MCP 제거
+-  ├── sentiment_analyst/      # ✏️ MCP 제거
+-  └── risk_assessor/          # ✏️ MCP 제거
+-
+-hosts/multiagent/
+-  └── host_agent.py           # ✏️ MCP 추가, 데이터 수집 담당
+-                              # ✏️ 종합 로직 강화
+-```
+-
+-**워크플로우**:
+-```python
+-# 1. Host Agent가 데이터 수집
+-async def collect_data(ticker):
+-    return {
+-        'market_data': await mcp.get_stock_data(ticker),
+-        'news': await mcp.get_news(ticker),
+-        'financials': await mcp.get_financials(ticker)
+-    }
+-
+-# 2. 분석 에이전트들에게 위임 (데이터 전달)
+-async def analyze(data):
+-    return await asyncio.gather(
+-        technical_agent.analyze(data['market_data']),
+-        fundamental_agent.analyze(data['financials']),
+-        sentiment_agent.analyze(data['news']),
+-        risk_agent.analyze(data['market_data'])
+-    )
+-
+-# 3. Host Agent가 종합
+-async def synthesize(analyses):
+-    return investment_report(analyses)
+-```
+-
+-**장점**:
+-- ✅ 설계 문서와 일치
+-- ✅ Layer 명확히 분리
+-- ✅ 중복 요청 제거
+-- ✅ 디버깅 용이
+-
+-**단점**:
+-- ⚠️ Host Agent 수정 필요
+-- ⚠️ 분석 에이전트 리팩토링 필요
+-
+----
+-
+-### **Option 2: 현재 구현 정당화 (차선)**
+-
+-**Stock Analyst를 "Quick Analysis Agent"로 재정의**:
+-```
+-Simple Query (예: "What's the price of AAPL?")
+-    ↓
+-Stock Analyst (올인원, 빠른 답변)
+-
+-Complex Query (예: "Should I invest in AAPL?")
+-    ↓
+-Host Agent → 4개 전문가 → 종합
+-```
+-
+-**변경 사항**:
+-- Stock Analyst 포트 → 10105로 변경
+-- 분석 에이전트는 그대로 유지 (MCP 연결 유지)
+-- 설계 문서 업데이트 (Stock Analyst 추가)
+-
+-**장점**:
+-- ✅ 코드 변경 최소화
+-- ✅ 간단한 질문 빠른 처리
+-
+-**단점**:
+-- ❌ 업계 표준과 불일치
+-- ❌ 중복 요청 문제 미해결
+-- ❌ Layer 분리 실패
+-
+----
+-
+-### **Option 3: 3-Layer 완전 구현 (이상적, 장기)**
+-
+-**새로운 구조**:
+-```
+-agents/
+-├── collectors/              # ✨ NEW: Layer 1
+-│   ├── market_data_collector/
+-│   ├── news_collector/
+-│   └── financial_collector/
+-├── analysts/                # ✏️ MODIFY: Layer 2
+-│   ├── technical_analyst/
+-│   ├── fundamental_analyst/
+-│   ├── sentiment_analyst/
+-│   └── risk_assessor/
+-└── synthesizers/            # ✨ NEW: Layer 3
+-    └── investment_advisor/
+-```
+-
+-**워크플로우**:
+-```
+-User Query
+-    ↓
+-Host Agent (Orchestrator)
+-    ↓
+-[Phase 1] Data Collection (병렬)
+-    market_data_collector.collect("AAPL")
+-    news_collector.collect("AAPL")
+-    financial_collector.collect("AAPL")
+-    ↓
+-[Phase 2] Analysis (병렬)
+-    technical_analyst.analyze(market_data)
+-    fundamental_analyst.analyze(financials)
+-    sentiment_analyst.analyze(news)
+-    risk_assessor.analyze(market_data)
+-    ↓
+-[Phase 3] Synthesis
+-    investment_advisor.synthesize(all_analyses)
+-    ↓
+-Final Report
+-```
+-
+-**장점**:
+-- ✅ 완벽한 업계 표준 준수
+-- ✅ 확장성 최고
+-- ✅ 유지보수성 최고
+-
+-**단점**:
+-- ⚠️ 대규모 리팩토링 필요
+-- ⚠️ 새 에이전트 개발 필요
+-
+----
+-
+-## 🧪 검증 방법
+-
+-### **현재 시스템 테스트**
+-
+-#### **1. 포트 충돌 확인**
+-```bash
+-# 모든 에이전트 실행 시도
+-cd agents/stock_analyst && uv run agent.py &
+-cd agents/technical_analyst && uv run agent.py &
+-
+-# 예상: 하나가 "Address already in use" 에러
+-```
+-
+-#### **2. MCP 중복 요청 확인**
+-```bash
+-# yfmcp 로깅 활성화하여 요청 수 확인
+-uvx yfmcp --port 10100 --log-level debug
+-
+-# 사용자 질문: "Analyze AAPL"
+-# 예상: get_stock_data("AAPL") 4번 호출됨 (중복!)
+-```
+-
+-#### **3. 종합 로직 확인**
+-```python
+-# Host Agent에게 질문
+-"Should I invest in AAPL?"
+-
+-# 체크 사항:
+-# - 4개 에이전트 모두에게 위임하는가?
+-# - Technical: "BUY", Fundamental: "SELL" 같은 상충 의견 처리하는가?
+-# - 최종 추천이 명확한가?
+-```
+-
+----
+-
+-## 📈 마이그레이션 계획 (Option 1 선택 시)
+-
+-### **Phase 1: 즉시 수정 (1-2일)**
+-- [ ] Stock Analyst 제거
+-- [ ] 포트 충돌 해결
+-- [ ] 기본 동작 확인
+-
+-### **Phase 2: Layer 분리 (3-5일)**
+-- [ ] Host Agent에 MCP 추가
+-- [ ] 분석 에이전트에서 MCP 제거
+-- [ ] 데이터를 파라미터로 전달하도록 수정
+-- [ ] 통합 테스트
+-
+-### **Phase 3: 종합 로직 강화 (2-3일)**
+-- [ ] Host Agent instruction 업데이트
+-- [ ] 상충 의견 조율 로직 추가
+-- [ ] 최종 리포트 포맷 개선
+-
+-### **Phase 4: 문서화 (1일)**
+-- [ ] 설계 문서 업데이트
+-- [ ] API 문서 작성
+-- [ ] 테스트 케이스 문서화
+-
+-**총 예상 기간**: 1-2주
+-
+----
+-
+-## 💡 학습 포인트
+-
+-### **배운 것**
+-1. **설계 문서의 중요성**
+-   - 구현 전에 설계 문서 정확히 이해 필요
+-   - 설계와 구현이 불일치하면 혼란 발생
+-
+-2. **Layer 분리의 필요성**
+-   - 데이터 수집과 분석을 섞으면 안 됨
+-   - 각 Layer는 명확한 책임만 가져야 함
+-
+-3. **포트 관리**
+-   - 각 에이전트의 포트를 명확히 문서화
+-   - 환경변수로 관리하되 기본값 중복 방지
+-
+-4. **프로토타입 vs 프로덕션**
+-   - Stock Analyst는 초기 프로토타입으로 보임
+-   - 프로덕션 전환 시 불필요한 코드 정리 필요
+-
+-### **다음 스터디**
+-- [ ] Host Agent 내부 구조 분석
+-- [ ] A2A 프로토콜 상세 스펙
+-- [ ] MCP 서버 구현 방법
+-- [ ] 에이전트 간 데이터 전달 최적화
+-
+----
+-
+-**마지막 업데이트**: 2025-12-03
+-**상태**: 문제 식별 완료, 수정 방안 수립 완료
+-**다음 단계**: 팀 논의 후 Option 선택 및 구현
+diff --git a/docs/study_archive/README.md b/docs/study_archive/README.md
+index 114dbb9186c4ed8efa61230dfe9b057ed0ee09fb..daa74f6da5e0c264f35357c88a96f2275d470210 100644
+--- a/docs/study_archive/README.md
++++ b/docs/study_archive/README.md
+@@ -1,198 +1,67 @@
+ # 📚 Study Archive
+ 
+-이 디렉토리는 프로젝트 개발 과정에서 학습한 내용과 아키텍처 분석을 정리한 공간입니다.
++이 디렉토리는 프로젝트 개발 과정에서 발생한 **실제 디버깅 사례**를 정리한 공간입니다.
+ 
+ ---
+ 
+ ## 📖 문서 목록
+ 
+-### 1. [Multi-Agent Architecture Patterns](./01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md)
+-**주제**: 멀티 에이전트 시스템 설계 패턴 완벽 가이드
++### 1. [병렬 실행 시도와 ToolContext 상태 충돌 문제](./parallel_execution_issue.md)
++**주제**: Google ADK의 ToolContext를 공유한 asyncio.gather() 병렬 실행 문제
+ 
+ **다루는 내용**:
+-- 4가지 주요 멀티 에이전트 설계 패턴
+-  - Hierarchical Task Decomposition
+-  - Orchestrator-Worker Pattern
+-  - Multi-Agent Parallel Pattern
+-  - Event-Driven Pattern
+-- 금융 분석 시스템의 올바른 3-Layer 아키텍처
+-- 실제 사례 연구 (Schroders, Anthropic)
+-- 핵심 설계 원칙 및 안티패턴
+-- 워크플로우 예시 및 코드 샘플
++- 문제 발생 배경: 30초 → 8초로 성능 개선 시도
++- 근본 원인: ToolContext 상태 공유로 인한 race condition
++- 해결 과정: asyncio.gather 제거 및 순차 실행 복원
++- 향후 개선 방안: Google ADK의 ParallelAgent 패턴
+ 
+ **핵심 교훈**:
+-> "정보 수집, 분석, 종합을 분리하라"
++> "상태를 공유하는 객체를 병렬 비동기 태스크에서 사용하면 안 된다"
+ 
+-**추천 대상**: 멀티 에이전트 시스템 설계를 처음 배우는 사람
++**추천 대상**: 멀티 에이전트 병렬 처리를 시도하려는 개발자
+ 
+-**예상 학습 시간**: 45-60분
++**예상 학습 시간**: 20-30분
+ 
+----
+-
+-### 2. [Current Architecture Analysis](./02_CURRENT_ARCHITECTURE_ANALYSIS.md)
+-**주제**: 현재 프로젝트 아키텍처 분석 및 문제점 정리
+-
+-**다루는 내용**:
+-- 현재 구현 상태 상세 분석
+-- 발견된 4가지 주요 문제점
+-  - 포트 충돌 (Stock Analyst vs Technical Analyst)
+-  - Stock Analyst 역할 불명확
+-  - 아키텍처 레이어 불일치
+-  - 종합 에이전트 부재
+-- 설계 vs 구현 비교표 (일치도 60%)
+-- 3가지 수정 방안 (Option 1, 2, 3)
+-- 마이그레이션 계획 및 검증 방법
+-
+-**핵심 발견**:
+-- 분석 에이전트가 MCP에 직접 연결 (잘못됨)
+-- 데이터 수집과 분석이 혼재
+-- 중복 요청 발생 (4개 에이전트가 각각 요청)
+-
+-**추천 대상**: 프로젝트 리팩토링 전에 읽어야 함
+-
+-**예상 학습 시간**: 30-45분
+-
+----
+-
+-## 🎯 학습 경로
+-
+-### **초보자를 위한 순서**
+-1. 먼저 **01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md** 읽기
+-   - 멀티 에이전트 시스템 기본 개념 이해
+-   - 4가지 주요 패턴 숙지
+-   - 올바른 아키텍처 이해
+-
+-2. 다음 **02_CURRENT_ARCHITECTURE_ANALYSIS.md** 읽기
+-   - 현재 프로젝트 문제점 파악
+-   - 수정 방안 검토
+-   - 마이그레이션 계획 이해
+-
+-3. 실제 코드 리뷰
+-   - `agents/*/agent.py` 파일들 분석
+-   - 문서와 코드 비교하며 이해
+-
+-### **경험자를 위한 순서**
+-1. **02_CURRENT_ARCHITECTURE_ANALYSIS.md** 먼저 읽고 문제점 파악
+-2. **01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md** 참고하여 해결책 구상
+-3. 직접 리팩토링 계획 수립
++**관련 커밋**:
++- 문제 발생: `parallel_execution_issue.md` 작성 전
++- 해결 커밋: 순차 실행 복원
+ 
+ ---
+ 
+ ## 🔑 핵심 Takeaways
+ 
+-### **멀티 에이전트 설계의 골든 룰**
+-
+-1. **Separation of Concerns** (관심사의 분리)
+-   ```
+-   수집 에이전트 → 데이터 수집만
+-   분석 에이전트 → 분석만
+-   종합 에이전트 → 종합만
+-   ```
+-
+-2. **Single Source of Truth** (단일 진실 공급원)
+-   ```
+-   데이터는 한 곳에서만 수집
+-   모든 에이전트가 같은 데이터 사용
+-   ```
+-
+-3. **Unidirectional Data Flow** (단방향 데이터 흐름)
+-   ```
+-   수집 → 분석 → 종합 (역방향 금지)
+-   ```
++### **디버깅에서 배운 교훈**
+ 
+-4. **Orchestration over Choreography** (조율 > 안무)
+-   ```
+-   중앙 조율자가 워크플로우 관리
+-   에이전트끼리 직접 통신 지양
+-   ```
++1. **상태 공유는 병렬 처리의 적**
++   ```python
++   # ❌ 잘못된 예
++   for analyst in analysts:
++       tasks.append(send_message(..., tool_context))  # 동일 객체 공유
+ 
+-5. **Parallel When Possible** (가능하면 병렬)
+-   ```
+-   독립적인 작업은 병렬 실행
+-   의존성 있는 작업만 순차 실행
++   # ✅ 올바른 예 (ADK)
++   ParallelAgent(agents=[...], output_key_mapping={...})
+    ```
+ 
+----
++2. **프레임워크의 실행 모델 이해 필수**
++   - Google ADK의 ToolContext는 thread-safe하지 않음
++   - 병렬 실행은 프레임워크가 제공하는 공식 패턴 사용
+ 
+-## 🏗️ 올바른 아키텍처 다이어그램
+-
+-```
+-┌─────────────────────────────────────────────────┐
+-│  User Interface (Mesop UI)                      │
+-└────────────────────┬────────────────────────────┘
+-                     │
+-┌────────────────────┴────────────────────────────┐
+-│  Host Agent (Orchestrator)                      │
+-│  - 전체 작업 흐름 관리                           │
+-│  - Layer 간 조율                                │
+-└────────────────────┬────────────────────────────┘
+-                     │
+-    ┌────────────────┼────────────────┐
+-    │                │                │
+-    ↓                ↓                ↓
+-┌─────────┐    ┌─────────┐    ┌─────────┐
+-│ Layer 1 │    │ Layer 2 │    │ Layer 3 │
+-│  수집   │ →  │  분석   │ →  │  종합   │
+-└─────────┘    └─────────┘    └─────────┘
+-
+-Layer 1: Data Collection
+-- Market Data Collector
+-- News Collector
+-- Financial Collector
+-
+-Layer 2: Analysis
+-- Technical Analyst
+-- Fundamental Analyst
+-- Sentiment Analyst
+-- Risk Assessor
+-
+-Layer 3: Synthesis
+-- Investment Advisor
+-- Report Generator
+-```
++3. **성능 최적화는 단계적으로**
++   - 먼저 안정성 확보 → 프로파일링 → 올바른 방법으로 최적화
++   - 잘못된 병렬 처리는 순차 처리보다 못할 수 있음 (크래시)
+ 
+ ---
+ 
+ ## 📚 추천 외부 자료
+ 
+ ### **공식 문서**
+-1. [Google Cloud: Agentic AI Design Patterns](https://docs.cloud.google.com/architecture/choose-design-pattern-agentic-ai-system)
+-2. [Microsoft Azure: AI Agent Orchestration](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns)
+-3. [Anthropic: Multi-Agent Research System](https://www.anthropic.com/engineering/multi-agent-research-system)
++1. [Google ADK - Parallel Agents](https://google.github.io/adk-docs/agents/workflow-agents/parallel-agents/)
++2. [Google ADK - Context Management](https://google.github.io/adk-docs/context/)
++3. [Microsoft Azure: AI Agent Design Patterns](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns)
+ 
+ ### **실무 가이드**
+-4. [A2A Protocol Enterprise Guide](https://www.kenility.com/blog/ai-tech-innovations/google-a2a-protocol-guide-ultimate-ai-agent-orchestration-strategy)
+-5. [Financial Analysis Multi-Agent Systems](https://medium.com/@batuhansenerr/ai-powered-financial-analysis-multi-agent-systems-transform-data-into-insights-d94e4867d75d)
+-
+-### **케이스 스터디**
+-6. [Schroders Multi-Agent Assistant](https://cloud.google.com/blog/topics/customers/how-schroders-built-its-multi-agent-financial-analysis-research-assistant)
+-7. [AWS Financial Assistant](https://aws.amazon.com/blogs/machine-learning/build-a-gen-ai-powered-financial-assistant-with-amazon-bedrock-multi-agent-collaboration/)
+-
+----
+-
+-## 🎓 자가 평가 체크리스트
+-
+-학습 후 스스로 확인해보세요:
+-
+-### **기본 개념**
+-- [ ] 멀티 에이전트 시스템이란 무엇인가?
+-- [ ] 왜 단일 에이전트보다 멀티 에이전트가 나은가?
+-- [ ] 4가지 주요 패턴의 차이점을 설명할 수 있는가?
+-
+-### **설계 원칙**
+-- [ ] "Separation of Concerns"를 실제 코드로 구현할 수 있는가?
+-- [ ] 데이터 수집과 분석을 분리해야 하는 이유를 설명할 수 있는가?
+-- [ ] Orchestrator-Worker 패턴의 장단점을 나열할 수 있는가?
+-
+-### **실무 적용**
+-- [ ] 금융 분석 시스템에 3-Layer 아키텍처가 필요한 이유를 설명할 수 있는가?
+-- [ ] 현재 프로젝트의 4가지 문제점을 설명할 수 있는가?
+-- [ ] 3가지 수정 방안 중 어떤 것이 최선인지 판단할 수 있는가?
+-
+-### **고급 주제**
+-- [ ] 병렬 실행 vs 순차 실행 판단 기준을 설명할 수 있는가?
+-- [ ] 에이전트 간 데이터 전달 방식을 설계할 수 있는가?
+-- [ ] 에러 처리 및 재시도 로직을 어디에 구현해야 하는가?
++4. [2-Minute ADK: Speed Up Your Agent with Parallel Tools](https://medium.com/google-cloud/2-minute-adk-speed-up-your-agent-with-parallel-tools-56450c3edb64)
++5. [Google ADK Masterclass Part 10: Parallel Execution](https://saptak.in/writing/2025/05/10/google-adk-masterclass-part10)
+ 
+ ---
+ 
+@@ -200,32 +69,22 @@ Layer 3: Synthesis
+ 
+ | 날짜 | 문서 | 변경 사항 |
+ |------|------|----------|
+-| 2025-12-03 | 01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md | 초안 작성 |
+-| 2025-12-03 | 02_CURRENT_ARCHITECTURE_ANALYSIS.md | 초안 작성 |
+-| 2025-12-03 | README.md | 초안 작성 |
++| 2025-12-04 | parallel_execution_issue.md | 초안 작성 |
++| 2025-12-05 | README.md | 디버깅 문서로 재편성 |
++| 2025-12-05 | 01_MULTI_AGENT_ARCHITECTURE_PATTERNS.md | 제거 (이론적 내용, 미구현) |
++| 2025-12-05 | 02_CURRENT_ARCHITECTURE_ANALYSIS.md | 제거 (폐기된 리팩토링 계획) |
+ 
+ ---
+ 
+ ## 💬 피드백 및 질문
+ 
+-이 스터디 자료에 대한 질문이나 개선 사항이 있다면:
++이 디버깅 자료에 대한 질문이나 개선 사항이 있다면:
+ 1. 프로젝트 디렉토리에 메모 남기기
+ 2. 관련 이슈 생성
+ 3. 문서 직접 수정 후 커밋
+ 
+ ---
+ 
+-## 🎯 다음 학습 주제
+-
+-- [ ] A2A 프로토콜 상세 분석
+-- [ ] MCP 서버 구현 방법
+-- [ ] 에이전트 간 통신 최적화
+-- [ ] 에러 처리 및 복원력(Resilience) 패턴
+-- [ ] 성능 모니터링 및 로깅
+-- [ ] 프로덕션 배포 전략
+-
+----
+-
+-**마지막 업데이트**: 2025-12-03
++**마지막 업데이트**: 2025-12-05
+ **유지 관리자**: 프로젝트 팀
+-**라이선스**: 내부 학습 자료
++**목적**: 실제 디버깅 사례를 통한 학습
+diff --git a/hosts/multiagent/host_agent.py b/hosts/multiagent/host_agent.py
+index 7a1b386c6043193d22fa29979aebb48b44447f28..b428400ad080ed7d8d9f051c44226bb9e24603d3 100644
+--- a/hosts/multiagent/host_agent.py
++++ b/hosts/multiagent/host_agent.py
+@@ -6,6 +6,7 @@ import re
+ import uuid
+ 
+ import httpx
++import urllib.parse
+ 
+ from a2a.client import A2ACardResolver, ClientConfig, ClientFactory
+ from a2a.types import (
+@@ -22,7 +23,7 @@ from a2a.types import (
+ from google.adk import Agent
+ from google.adk.agents.callback_context import CallbackContext
+ from google.adk.agents.readonly_context import ReadonlyContext
+-from google.adk.models.lite_llm import LiteLlm
++from google.adk.models import Gemini
+ from google.adk.tools.tool_context import ToolContext
+ from google.genai import types
+ from remote_agent_connection import RemoteAgentConnections, TaskUpdateCallback
+@@ -90,11 +91,13 @@ class HostAgent:
+         self.agents = '\n'.join(agent_info)
+ 
+     def create_agent(self) -> Agent:
+-        LITELLM_MODEL = os.getenv(
+-            'LITELLM_MODEL', 'gemini/gemini-2.0-flash-001'
++        from google.adk.models import Gemini
++
++        GEMINI_MODEL = os.getenv(
++            'GEMINI_MODEL', 'gemini-2.0-flash-001'
+         )
+         return Agent(
+-            model=LiteLlm(model=LITELLM_MODEL),
++            model=Gemini(model=GEMINI_MODEL, api_key=os.getenv('GOOGLE_API_KEY')),
+             name='host_agent',
+             instruction=self.root_instruction,
+             before_model_callback=self.before_model_callback,
+@@ -103,139 +106,41 @@ class HostAgent:
+                 ' tasks that can be performed by the child agents.'
+             ),
+             tools=[
++                self.analyze_stock_parallel,  # PRIMARY tool for all stock analysis
++                self.search_ticker,
+                 self.list_remote_agents,
+-                self.send_message,
++                # send_message is removed from tools to force use of analyze_stock_parallel
++                # Research: Reducing tool count by 25% improves selection accuracy by 70%
++                # See: https://docs.anyscale.com/llm/serving/tool-function-calling
+             ],
+         )
+ 
+     def root_instruction(self, context: ReadonlyContext) -> str:
+         current_agent = self.check_state(context)
+-        return f"""You are an expert financial analyst coordinator managing a team of 4 specialized stock analysis agents.
+-
+-**CRITICAL: ALWAYS respond in Korean (한국어) regardless of the language used in the user's question or analyst responses.**
+-
+-**Your Role:**
+-- Coordinate between user requests and specialized analysts
+-- Delegate stock analysis tasks to appropriate experts
+-- Synthesize insights from multiple analysts into comprehensive recommendations
+-- **Present all findings in Korean (한국어)**
+-
+-**Available Specialized Analysts:**
+-
+-1. **technical_analyst**: Chart patterns, RSI, MACD, Moving Averages, support/resistance levels, entry/exit points
+-2. **fundamental_analyst**: P/E ratios, earnings, revenue growth, financial health, ROE, ROA, valuation metrics
+-3. **sentiment_analyst**: News sentiment, analyst ratings, market mood, social media buzz, upcoming catalysts
+-4. **risk_assessor**: Volatility, beta, VIX context, maximum drawdown, portfolio fit, position sizing
+-
+-**Stock Analysis Workflow:**
++        return f"""Stock analyst coordinator. ALWAYS respond in Korean (한국어).
+ 
+-When user asks to analyze a stock (e.g., "Analyze Apple stock", "삼성전자 주가 분석해줘"):
++**Tools (in order of priority):**
++1. `analyze_stock_parallel(ticker)` - Use for ALL stock analysis (병렬 처리, 12초)
++2. `search_ticker(company_name)` - Find ticker for company names (삼성전자→005930.KS)
++3. `list_remote_agents` - List available analysts
+ 
+-1. **Identify the stock ticker** from the user's request
+-   - **IMPORTANT: For Korean stocks, use the correct Yahoo Finance ticker format:**
+-     - 삼성전자 → 005930.KS (NOT SMSN.IL)
+-     - SK하이닉스 → 000660.KS
+-     - NAVER → 035420.KS
+-     - 카카오 → 035720.KS
+-     - 현대차 → 005380.KS
+-   - For US stocks: Use standard tickers (AAPL, TSLA, MSFT, GOOGL, etc.)
+-   - If unsure, default to .KS suffix for Korean stocks
++**Workflow:**
++1. Unknown ticker? → search_ticker first
++2. Stock analysis? → analyze_stock_parallel (MANDATORY, 70% faster)
++3. Synthesize results in Korean
+ 
+-2. **Query each specialized analyst** using the `send_message` tool:
+-   - `send_message(analyst_name="technical_analyst", message="Analyze [TICKER] stock")`
+-   - `send_message(analyst_name="fundamental_analyst", message="Analyze [TICKER] stock")`
+-   - `send_message(analyst_name="sentiment_analyst", message="Analyze [TICKER] stock")`
+-   - `send_message(analyst_name="risk_assessor", message="Analyze [TICKER] stock")`
+-   - Each analyst will independently fetch data and perform their specialized analysis
+-
+-3. **Collect all 4 reports** - Wait for each analyst to complete their analysis
+-
+-4. **Synthesize findings in Korean (한국어)** - Combine insights into a comprehensive investment recommendation
+-
+-**Synthesis Guidelines (한국어로 작성):**
+-- 경영 요약(Executive Summary)으로 시작
+-- 각 분석가의 핵심 발견사항을 해당 섹션에 제시
+-- 합의된 견해와 상충되는 신호 식별
+-- 4가지 관점을 모두 고려한 최종 권고안 제공
+-- 주요 위험요소 및 실행 항목 포함
+-
+-**Korean Output Format Template:**
+-```
++**Output format (Korean):**
+ ## 종합 분석 보고서: [회사명] ([티커])
+-
+ ### 📊 경영 요약
+-[전반적인 투자 의견을 2-3문장으로 요약]
+-
+-### 📈 기술적 분석 (Technical Analyst)
+-[기술적 분석가의 핵심 발견사항]
+-
+-### 💼 펀더멘털 분석 (Fundamental Analyst)
+-[펀더멘털 분석가의 핵심 발견사항]
+-
+-### 📰 시장 심리 분석 (Sentiment Analyst)
+-[심리 분석가의 핵심 발견사항]
+-
+-### ⚠️ 리스크 평가 (Risk Assessor)
+-[리스크 평가자의 핵심 발견사항]
+-
+-### 🎯 종합 의견
+-- **합의 사항**: [분석가들 간 일치하는 견해]
+-- **상충 사항**: [분석가들 간 다른 견해]
+-- **최종 권고**: [매수/보유/매도 및 근거]
+-
+-### ⚠️ 주요 리스크
+-- [리스크 1]
+-- [리스크 2]
+-- [리스크 3]
+-
+-### ✅ 실행 항목
+-- [실행 항목 1]
+-- [실행 항목 2]
+-
+----
+-### 🔍 데이터 검증 (UI Debug)
+-*이 섹션은 구조화된 데이터 반환을 검증하기 위한 디버그 정보입니다.*
+-
+-**Technical Analyst Data:**
+-```json
+-[Technical Analyst로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+-```
+-
+-**Fundamental Analyst Data:**
+-```json
+-[Fundamental Analyst로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+-```
+-
+-**Sentiment Analyst Data:**
+-```json
+-[Sentiment Analyst로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+-```
+-
+-**Risk Assessor Data:**
+-```json
+-[Risk Assessor로부터 받은 원본 JSON 데이터를 여기에 그대로 출력]
+-```
+-```
+-
+-**Important:**
+-- **ALWAYS write your final synthesis in Korean (한국어)**
+-- For stock analysis requests, ALWAYS delegate to all 4 analysts
+-- For non-stock questions, use appropriate agents or respond directly in Korean
+-- Be sure to include the analyst names when presenting their findings
+-- Don't make up responses - rely on actual analyst outputs
+-- Translate and summarize English analyst responses into Korean
+-- **JSON Extraction**: Each analyst will return a JSON block at the end of their response. You MUST extract this JSON block and place it in the "Data Verification (UI Debug)" section exactly as received.
+-
+-**Discovery:**
+-- Use `list_remote_agents` to see available analysts
+-
+-**Execution:**
+-- Use `send_message(agent_name, message)` to delegate tasks
+-
+-Available Agents:
+-{self.agents}
+-
+-Current agent: {current_agent['active_agent']}
++### 📈 기술적 분석
++### 💼 펀더멘털 분석
++### 📰 시장 심리 분석
++### ⚠️ 리스크 평가
++### 🎯 종합 의견 (합의/상충/최종 권고)
++### 🔍 데이터 검증 (각 분석가 JSON 출력)
++
++Available: {self.agents}
++Active: {current_agent['active_agent']}
+ """
+ 
+     def check_state(self, context: ReadonlyContext):
+@@ -268,6 +173,172 @@ Current agent: {current_agent['active_agent']}
+             )
+         return remote_agent_info
+ 
++    async def search_ticker(self, company_name: str):
++        """Search for stock ticker symbol by company name using Yahoo Finance API.
++
++        This tool searches Yahoo Finance to find the ticker symbol for any company,
++        including Korean stocks. It's especially useful for non-famous stocks where
++        the ticker symbol is not immediately known.
++
++        Args:
++            company_name: The name of the company to search for.
++                         Can be in Korean (e.g., "LG전자", "포스코") or English (e.g., "Tesla", "Apple").
++
++        Returns:
++            A dictionary with ticker information including symbol, name, exchange, and type.
++            Returns the top 5 matching results if multiple matches are found.
++
++        Examples:
++            - search_ticker("LG전자") → Returns {"symbol": "066570.KS", "name": "LG Electronics Inc.", ...}
++            - search_ticker("Tesla") → Returns {"symbol": "TSLA", "name": "Tesla, Inc.", ...}
++            - search_ticker("포스코") → Returns {"symbol": "005490.KS", "name": "POSCO Holdings Inc.", ...}
++        """
++        try:
++            url = "https://query2.finance.yahoo.com/v1/finance/search"
++            headers = {
++                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
++            }
++            params = {
++                'q': company_name,
++                'quotes_count': 5,  # Get top 5 results
++                'newsCount': 0,
++                'enableFuzzyQuery': False,
++                'quotesQueryId': 'tss_match_phrase_query'
++            }
++
++            print(f"HostAgent: Searching ticker for '{company_name}'...")
++            response = await self.httpx_client.get(url, params=params, headers=headers)
++            response.raise_for_status()
++            data = response.json()
++
++            if 'quotes' not in data or len(data['quotes']) == 0:
++                return {
++                    'error': f"No ticker found for '{company_name}'. Please try a different company name or provide the ticker symbol directly."
++                }
++
++            # Extract relevant information from search results
++            results = []
++            for quote in data['quotes'][:5]:  # Top 5 results
++                result = {
++                    'symbol': quote.get('symbol', 'N/A'),
++                    'name': quote.get('longname') or quote.get('shortname', 'N/A'),
++                    'exchange': quote.get('exchange', 'N/A'),
++                    'type': quote.get('quoteType', 'N/A'),
++                    'score': quote.get('score', 0)
++                }
++                results.append(result)
++
++            # Sort by score (relevance)
++            results.sort(key=lambda x: x['score'], reverse=True)
++
++            if len(results) == 1:
++                print(f"HostAgent: Found ticker: {results[0]['symbol']} for '{company_name}'")
++                return {
++                    'found': True,
++                    'ticker': results[0]['symbol'],
++                    'name': results[0]['name'],
++                    'exchange': results[0]['exchange'],
++                    'type': results[0]['type']
++                }
++            else:
++                print(f"HostAgent: Found {len(results)} matches for '{company_name}'")
++                return {
++                    'found': True,
++                    'multiple_matches': True,
++                    'count': len(results),
++                    'top_match': results[0]['symbol'],
++                    'matches': results
++                }
++
++        except Exception as e:
++            print(f"HostAgent: Error searching ticker for '{company_name}': {e}")
++            return {
++                'error': f"Failed to search ticker: {str(e)}. Please try again or provide the ticker symbol directly."
++            }
++
++    async def analyze_stock_parallel(
++        self, ticker: str, tool_context: ToolContext
++    ):
++        """Analyze a stock by querying all 4 specialized analysts in parallel.
++
++        This tool sends the same stock analysis request to all agents simultaneously,
++        dramatically reducing total response time from ~40s to ~12s (70% improvement).
++
++        Args:
++            ticker: The stock ticker symbol (e.g., 'AAPL', '005930.KS')
++            tool_context: The tool context this method runs in.
++
++        Returns:
++            A dictionary mapping agent names to their analysis results.
++        """
++        # Define all analyst agents
++        agent_names = [
++            'technical_analyst',
++            'fundamental_analyst',
++            'sentiment_analyst',
++            'risk_assessor'
++        ]
++
++        # Verify all agents are available
++        missing_agents = [
++            name for name in agent_names
++            if name not in self.remote_agent_connections
++        ]
++        if missing_agents:
++            raise ValueError(
++                f'Some agents are not available: {", ".join(missing_agents)}'
++            )
++
++        import time
++        start_time = time.time()
++        print(f"[PERF] HostAgent: Starting parallel analysis for {ticker} with {len(agent_names)} agents at {start_time:.2f}")
++
++        # Create parallel tasks for all agents
++        async def query_agent(agent_name: str):
++            """Query a single agent and return its response."""
++            agent_start = time.time()
++            print(f"[PERF] {agent_name}: Starting query at {agent_start - start_time:.2f}s")
++            try:
++                result = await self.send_message(
++                    agent_name=agent_name,
++                    message=f"Analyze {ticker} stock",
++                    tool_context=tool_context
++                )
++                agent_end = time.time()
++                print(f"[PERF] {agent_name}: Completed in {agent_end - agent_start:.2f}s")
++                return (agent_name, result)
++            except Exception as e:
++                agent_end = time.time()
++                print(f"[PERF] {agent_name}: Failed after {agent_end - agent_start:.2f}s - {e}")
++                # Return error response for this agent
++                error_json = {
++                    "ticker": ticker,
++                    "analysis_content": f"**[ERROR from {agent_name}]**\n\n{str(e)}"
++                }
++                return (agent_name, [json.dumps(error_json)])
++
++        # Execute all queries in parallel
++        tasks = [query_agent(name) for name in agent_names]
++        results = await asyncio.gather(*tasks, return_exceptions=False)
++
++        end_time = time.time()
++        total_time = end_time - start_time
++        print(f"[PERF] HostAgent: Parallel analysis completed for {ticker} in {total_time:.2f}s")
++
++        # Convert results to dictionary format
++        results_dict = dict(results)
++
++        # Format the combined response
++        response = []
++        response.append(f"## Parallel Analysis Results for {ticker}\n")
++
++        for agent_name in agent_names:
++            agent_result = results_dict.get(agent_name, [])
++            response.append(f"\n### {agent_name}:")
++            response.extend(agent_result)
++
++        return response
++
+     async def send_message(
+         self, agent_name: str, message: str, tool_context: ToolContext
+     ):
+diff --git a/hosts/multiagent/remote_agent_connection.py b/hosts/multiagent/remote_agent_connection.py
+index f48df3c84acb383e43ead6b3a343d7535a6e2960..d16ab425ba08e2f350a7755c51c8a3bb3c5b4910 100644
+--- a/hosts/multiagent/remote_agent_connection.py
++++ b/hosts/multiagent/remote_agent_connection.py
+@@ -34,14 +34,26 @@ class RemoteAgentConnections:
+     async def send_message(self, message: Message) -> Task | Message | None:
+         lastTask: Task | None = None
+         try:
++            print(f"[DEBUG] RemoteAgentConnection: Starting send_message to {self.card.name}")
++            event_count = 0
+             async for event in self.agent_client.send_message(message):
++                event_count += 1
++                print(f"[DEBUG] RemoteAgentConnection: Received event #{event_count} from {self.card.name}, type: {type(event)}")
+                 if isinstance(event, Message):
++                    print(f"[DEBUG] RemoteAgentConnection: Got Message response, returning")
+                     return event
+-                if self.is_terminal_or_interrupted(event[0]):
+-                    return event[0]
+-                lastTask = event[0]
++                if isinstance(event, tuple) and len(event) > 0:
++                    task = event[0]
++                    print(f"[DEBUG] RemoteAgentConnection: Got Task with state: {task.status.state}")
++                    if self.is_terminal_or_interrupted(task):
++                        print(f"[DEBUG] RemoteAgentConnection: Task is terminal, returning")
++                        return task
++                    lastTask = task
++                else:
++                    print(f"[DEBUG] RemoteAgentConnection: Unexpected event format: {event}")
++            print(f"[DEBUG] RemoteAgentConnection: Stream ended after {event_count} events, returning lastTask: {lastTask.status.state if lastTask else 'None'}")
+         except Exception as e:
+-            print('Exception found in send_message')
++            print(f'[ERROR] Exception found in send_message: {e}')
+             traceback.print_exc()
+             raise e
+         return lastTask

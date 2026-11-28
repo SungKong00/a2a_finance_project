@@ -1,0 +1,6 @@
+{
+  "ticker": "012450.KS",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-08T21:46:50.120432",
+  "response": "{\"ticker\": \"012450.KS\", \"risk_level\": \"매우 높음\", \"beta\": 0.99, \"volatility\": 0.76, \"max_drawdown\": -0.76, \"sharpe_ratio\": 0.8, \"summary\": \"이 주식은 0.99의 베타를 보여 시장과 유사한 변동성을 보입니다. 52주 동안 약 76%의 높은 변동성과 최대 하락률을 기록하여, 매우 높은 수준의 위험을 내포하고 있습니다.\"}"
+}

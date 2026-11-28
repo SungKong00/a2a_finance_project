@@ -1,0 +1,6 @@
+{
+  "ticker": "WMT",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-13T17:06:56.988347",
+  "response": "{\"ticker\": \"WMT\", \"risk_level\": \"낮음\", \"beta\": 0.641, \"volatility\": 0.18, \"max_drawdown\": -0.12, \"sharpe_ratio\": 1.3, \"summary\": \"월마트(WMT)는 0.641의 낮은 베타를 보이며 시장 변동성에 비해 안정적인 움직임을 나타냅니다. 이는 비교적 낮은 변동성과 하방 리스크를 가진 투자처로 판단됩니다.\"}"
+}

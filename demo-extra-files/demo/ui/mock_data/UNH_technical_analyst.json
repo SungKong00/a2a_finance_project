@@ -1,0 +1,6 @@
+{
+  "ticker": "UNH",
+  "agent_name": "technical_analyst",
+  "timestamp": "2025-12-09T03:34:16.741923",
+  "response": "{\"ticker\": \"UNH\", \"current_price\": 324.9, \"trend\": \"약세\", \"rsi\": 35.0, \"macd_signal\": \"데드크로스\", \"support_levels\": [300, 280], \"resistance_levels\": [340, 360], \"summary\": \"UNH 주가는 지난 6개월간 하락 추세를 보이고 있습니다. RSI 지표는 35로 과매도 구간에 가까워지고 있으며, MACD는 데드크로스 신호를 나타내고 있어 단기적인 약세 흐름이 지속될 가능성이 있습니다. 주요 지지선은 300달러와 280달러이며, 저항선은 340달러와 360달러입니다.\"}"
+}

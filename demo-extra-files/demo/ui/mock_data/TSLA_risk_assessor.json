@@ -1,0 +1,6 @@
+{
+  "ticker": "TSLA",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-16T00:28:42.910987",
+  "response": "{\"ticker\": \"TSLA\", \"risk_level\": \"높음\", \"beta\": 1.88, \"volatility\": 0.45, \"max_drawdown\": -0.3, \"sharpe_ratio\": 0.9, \"summary\": \"테슬라는 시장 대비 높은 변동성을 가진 성장주로 분류됩니다. 이는 높은 수익률의 잠재력을 가지지만, 상당한 하방 리스크 또한 내포하고 있습니다.\"}"
+}

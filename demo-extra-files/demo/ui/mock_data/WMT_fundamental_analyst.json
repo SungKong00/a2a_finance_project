@@ -1,0 +1,6 @@
+{
+  "ticker": "WMT",
+  "agent_name": "fundamental_analyst",
+  "timestamp": "2025-12-13T17:06:56.987662",
+  "response": "{\"ticker\": \"WMT\", \"valuation_verdict\": \"고평가\", \"pe_ratio\": 40.8, \"pb_ratio\": 9.68, \"market_cap\": 930431696896, \"revenue_growth\": 0.058, \"roe\": 0.23661, \"recommendation\": \"적극 매수\", \"summary\": \"Walmart Inc.은 높은 P/E 및 P/B 비율을 보이는 등 현재 고평가되어 있습니다. 하지만 매출 성장률과 자기자본 이익률은 양호하며, 애널리스트들은 적극 매수를 권고하고 있습니다.\"}"
+}

@@ -1,0 +1,30 @@
+/* Custom CSS for Angular Material form field height fix */
+
+/* Remove reserved space for subscript (hint/error) when not present */
+.mat-mdc-form-field-subscript-wrapper {
+  display: none !important;
+}
+
+/* Remove top padding reserved for floating label when no label */
+.mat-mdc-form-field:not(.mat-form-field-has-label) .mat-mdc-form-field-infix {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Reduce overall form field height */
+.mat-mdc-form-field-flex {
+  align-items: center !important;
+}
+
+/* Compact text field wrapper */
+.mat-mdc-text-field-wrapper {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Fix input height */
+.mat-mdc-form-field-infix {
+  min-height: 40px !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+}

@@ -1,0 +1,6 @@
+{
+  "ticker": "UNH",
+  "agent_name": "risk_assessor",
+  "timestamp": "2025-12-09T03:34:16.742357",
+  "response": "{\"ticker\": \"UNH\", \"risk_level\": \"보통\", \"beta\": 0.432, \"volatility\": 0.2, \"max_drawdown\": -0.12, \"sharpe_ratio\": 1.1, \"summary\": \"유나이티드헬스 그룹(UNH)은 의료 보험 및 건강 서비스 부문에서 사업을 영위하고 있습니다. 0.432의 베타를 보여 시장 변동성에 비해 낮은 위험도를 나타냅니다.\"}"
+}

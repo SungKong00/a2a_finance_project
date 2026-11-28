@@ -1,0 +1,540 @@
+diff --git a/demo/ui/components/conversation.py b/demo/ui/components/conversation.py
+index 40bd9d1..4819d5d 100644
+--- a/demo/ui/components/conversation.py
++++ b/demo/ui/components/conversation.py
+@@ -1,18 +1,10 @@
+-import uuid
+-
+ import mesop as me
+ 
+-from a2a.types import Message, Part, Role, TextPart
+-from state.host_agent_service import (
+-    ListConversations,
+-    SendMessage,
+-    convert_message_to_state,
+-)
+ from state.state import AppState, StateMessage
+ 
+ from .chat_bubble import chat_bubble
+ from .form_render import form_sent, is_form, render_form
+-from .stock_input import stock_input
++from .stock_input import stock_input, compact_stock_input
+ from .stock_dashboard import (
+     stock_dashboard,
+     loading_dashboard,
+@@ -22,173 +14,90 @@ from .stock_dashboard import (
+ from styles.stock_styles import COLORS
+ 
+ 
+-@me.stateclass
+-class PageState:
+-    """Local Page State"""
+-
+-    conversation_id: str = ''
+-    message_content: str = ''
+-
+-
+-def on_blur(e: me.InputBlurEvent):
+-    """Input handler"""
+-    state = me.state(PageState)
+-    state.message_content = e.value
+-
+-
+-async def send_message(message: str, message_id: str = ''):
+-    state = me.state(PageState)
+-    app_state = me.state(AppState)
+-    c = next(
+-        (
+-            x
+-            for x in await ListConversations()
+-            if x.conversation_id == state.conversation_id
+-        ),
+-        None,
+-    )
+-    if not c:
+-        print('Conversation id ', state.conversation_id, ' not found')
+-    request = Message(
+-        message_id=message_id,
+-        context_id=state.conversation_id,
+-        role=Role.user,
+-        parts=[Part(root=TextPart(text=message))],
+-    )
+-    # Add message to state until refresh replaces it.
+-    state_message = convert_message_to_state(request)
+-    if not app_state.messages:
+-        app_state.messages = []
+-    app_state.messages.append(state_message)
+-    conversation = next(
+-        filter(
+-            lambda x: c and x.conversation_id == c.conversation_id,
+-            app_state.conversations,
+-        ),
+-        None,
+-    )
+-    if conversation:
+-        conversation.message_ids.append(state_message.message_id)
+-    await SendMessage(request)
+-
+-
+-async def send_message_enter(e: me.InputEnterEvent):  # pylint: disable=unused-argument
+-    """Send message handler"""
+-    yield
+-    state = me.state(PageState)
+-    state.message_content = e.value
+-    app_state = me.state(AppState)
+-    message_id = str(uuid.uuid4())
+-    app_state.background_tasks[message_id] = ''
+-    yield
+-    await send_message(state.message_content, message_id)
+-    yield
+-
+-
+-async def send_message_button(e: me.ClickEvent):  # pylint: disable=unused-argument
+-    """Send message button handler"""
+-    yield
+-    state = me.state(PageState)
+-    app_state = me.state(AppState)
+-    message_id = str(uuid.uuid4())
+-    app_state.background_tasks[message_id] = ''
+-    await send_message(state.message_content, message_id)
+-    yield
+-
+-
+ @me.component
+ def conversation():
+-    """Conversation component with dark theme stock dashboard"""
+-    page_state = me.state(PageState)
++    """
++    Main conversation/dashboard component.
++    """
+     app_state = me.state(AppState)
+-    if 'conversation_id' in me.query_params:
+-        page_state.conversation_id = me.query_params['conversation_id']
+-        app_state.current_conversation_id = page_state.conversation_id
+ 
+-    # Main container with dark theme
++    # Use column layout for the main container
+     main_container_style = me.Style(
+         display='flex',
+         flex_direction='column',
+-        min_height='100vh',
++        height='100%',
+         background=COLORS['background'],
+     )
+ 
+     with me.box(style=main_container_style):
+-        # Stock input at the top
+-        stock_input()
+-
+-        # Dashboard or chat messages
+-        content_area_style = me.Style(
+-            flex_grow=1,
+-            padding=me.Padding.all(16),
+-        )
+-
+-        with me.box(style=content_area_style):
+-            analysis = app_state.current_analysis
+-
+-            # Calculate progress for loading state
+-            progress = {
+-                'technical': bool(analysis.technical),
+-                'fundamental': bool(analysis.fundamental),
+-                'sentiment': bool(analysis.sentiment),
+-                'risk': bool(analysis.risk),
+-            }
+-
+-            # Show dashboard if we have analysis data
+-            if analysis.is_loading:
++        analysis = app_state.current_analysis
++
++        # Calculate progress for loading state using completion flags
++        progress = {
++            'technical': analysis.technical_done,
++            'fundamental': analysis.fundamental_done,
++            'sentiment': analysis.sentiment_done,
++            'risk': analysis.risk_done,
++        }
++
++        # Show dashboard if we have analysis data
++        if analysis.is_loading:
++            # Show compact input at top when loading
++            compact_stock_input()
++            with me.box(style=me.Style(flex_grow=1, padding=me.Padding.all(16))):
+                 loading_dashboard(ticker=analysis.ticker, progress=progress)
+-            elif analysis.error:
++        elif analysis.error:
++            compact_stock_input()
++            with me.box(style=me.Style(flex_grow=1, padding=me.Padding.all(16))):
+                 error_dashboard(analysis.error)
+-            elif analysis.ticker and (
+-                analysis.technical or
+-                analysis.fundamental or
+-                analysis.sentiment or
+-                analysis.risk
+-            ):
+-                # Convert StockAnalysis to dict for dashboard
+-                analysis_data = {
+-                    'company_name': analysis.company_name,
+-                    'technical': analysis.technical,
+-                    'fundamental': analysis.fundamental,
+-                    'sentiment': analysis.sentiment,
+-                    'risk': analysis.risk,
+-                    'recommendation': analysis.recommendation,
+-                    'summary': analysis.summary,
+-                    'confidence': analysis.confidence,
+-                }
+-                stock_dashboard(
+-                    ticker=analysis.ticker,
+-                    analysis_data=analysis_data,
+-                    expanded_cards=app_state.analysis_card_expanded,
+-                )
+-            elif not app_state.messages:
+-                # No messages and no analysis - show empty state
+-                empty_dashboard()
+-            else:
+-                # Show chat messages as fallback
++        elif analysis.ticker and (
++            analysis.technical or
++            analysis.fundamental or
++            analysis.sentiment or
++            analysis.risk
++        ):
++            # Show compact input at top when showing results
++            compact_stock_input()
++            # Convert StockAnalysis to dict for dashboard
++            analysis_data = {
++                'company_name': analysis.company_name,
++                'technical': analysis.technical,
++                'fundamental': analysis.fundamental,
++                'sentiment': analysis.sentiment,
++                'risk': analysis.risk,
++                'recommendation': analysis.recommendation,
++                'summary': analysis.summary,
++                'confidence': analysis.confidence,
++            }
++            stock_dashboard(
++                ticker=analysis.ticker,
++                analysis_data=analysis_data,
++                expanded_cards=app_state.analysis_card_expanded,
++            )
++        elif not app_state.messages:
++            # No messages and no analysis - show empty state with integrated input
++            empty_dashboard()
++        else:
++            # Show chat messages as fallback
++            compact_stock_input()
++            with me.box(style=me.Style(flex_grow=1, padding=me.Padding.all(16))):
+                 _render_chat_messages(app_state)
+ 
+ 
+ def _render_chat_messages(app_state: AppState):
+-    """Render traditional chat bubble messages."""
+-    messages_container_style = me.Style(
+-        display='flex',
+-        flex_direction='column',
+-        gap=12,
+-    )
+-
+-    with me.box(style=messages_container_style):
+-        for message in app_state.messages:
+-            if is_form(message):
+-                render_form(message, app_state)
+-            elif form_sent(message, app_state):
+-                chat_bubble(
+-                    StateMessage(
+-                        message_id=message.message_id,
+-                        role=message.role,
+-                        content=[('Form submitted', 'text/plain')],
+-                    ),
+-                    message.message_id,
+-                )
+-            else:
+-                chat_bubble(message, message.message_id)
++    """Render the list of chat messages."""
++    # Add a spacer at the top to push messages down if needed
++    # me.box(style=me.Style(height=20))
++
++    for message in app_state.messages:
++        if is_form(message):
++            if not form_sent(message):
++                render_form(message)
++        else:
++            chat_bubble(message=message, key=message.message_id)
++
++    # Scroll anchor
++    me.box(
++        key='end_of_messages',
++        style=me.Style(height=20, margin=me.Margin(bottom=50)),
++    )
+\ No newline at end of file
+diff --git a/demo/ui/components/summary_badge.py b/demo/ui/components/summary_badge.py
+index 3a71fbd..93a7bd1 100644
+--- a/demo/ui/components/summary_badge.py
++++ b/demo/ui/components/summary_badge.py
+@@ -21,32 +21,81 @@ from styles.stock_styles import (
+ 
+ # Icon mappings for different badge types
+ BADGE_ICONS = {
+-    # Recommendations
++    # Recommendations (English & Korean)
+     'strong_buy': 'trending_up',
++    'strongbuy': 'trending_up',
++    '적극_매수': 'trending_up',
++    '적극매수': 'trending_up',
++    
+     'buy': 'arrow_upward',
++    '매수': 'arrow_upward',
++    
+     'hold': 'remove',
++    '보유': 'remove',
++    '중립': 'remove',
++    
+     'sell': 'arrow_downward',
++    '매도': 'arrow_downward',
++    
+     'strong_sell': 'trending_down',
++    'strongsell': 'trending_down',
++    '적극_매도': 'trending_down',
++    '적극매도': 'trending_down',
+ 
+-    # Trends
++    # Trends (English & Korean)
+     'bullish': 'trending_up',
++    '강세': 'trending_up',
++    '상승': 'trending_up',
++    
+     'bearish': 'trending_down',
++    '약세': 'trending_down',
++    '하락': 'trending_down',
++    
+     'neutral': 'trending_flat',
++    '보합': 'trending_flat',
+ 
+-    # Sentiment
++    # Sentiment (English & Korean)
+     'positive': 'sentiment_satisfied',
++    '긍정': 'sentiment_satisfied',
++    '긍정적': 'sentiment_satisfied',
++    
+     'negative': 'sentiment_dissatisfied',
++    '부정': 'sentiment_dissatisfied',
++    '부정적': 'sentiment_dissatisfied',
+ 
+-    # Risk levels
++    # Risk levels (English & Korean)
+     'low': 'verified_user',
++    'low_risk': 'verified_user',
++    '낮음': 'verified_user',
++    '저위험': 'verified_user',
++    
+     'moderate': 'shield',
++    'moderate_risk': 'shield',
++    '보통': 'shield',
++    '중간': 'shield',
++    
+     'high': 'warning',
++    'high_risk': 'warning',
++    '높음': 'warning',
++    '고위험': 'warning',
++    
+     'very_high': 'dangerous',
++    'very_high_risk': 'dangerous',
++    '매우_높음': 'dangerous',
++    '매우높음': 'dangerous',
++    '초고위험': 'dangerous',
+ 
+-    # Valuation
++    # Valuation (English & Korean)
+     'undervalued': 'thumb_up',
++    '저평가': 'thumb_up',
++    
+     'fairly_valued': 'thumbs_up_down',
++    'fair': 'thumbs_up_down',
++    '적정가': 'thumbs_up_down',
++    '적정': 'thumbs_up_down',
++    
+     'overvalued': 'thumb_down',
++    '고평가': 'thumb_down',
+ }
+ 
+ 
+diff --git a/demo/ui/mock_data/AVGO_FULL_ANALYSIS.json b/demo/ui/mock_data/AVGO_FULL_ANALYSIS.json
+index 84c5a8b..8892b4f 100644
+--- a/demo/ui/mock_data/AVGO_FULL_ANALYSIS.json
++++ b/demo/ui/mock_data/AVGO_FULL_ANALYSIS.json
+@@ -1,10 +1,10 @@
+ {
+   "ticker": "AVGO",
+-  "timestamp": "2025-12-08T01:46:30.693239",
++  "timestamp": "2025-12-16T02:55:29.007313",
+   "agents": {
+-    "technical_analyst": "{\"ticker\": \"AVGO\", \"current_price\": 390.24, \"trend\": \"강세\", \"rsi\": 62.5, \"macd_signal\": \"골든크로스\", \"support_levels\": [370.0, 350.0], \"resistance_levels\": [400.0, 410.0], \"summary\": \"Broadcom Inc. (AVGO)는 견조한 강세 추세를 보이고 있으며, RSI는 62.5로 과매수 구간 직전입니다. MACD 지표는 골든크로스를 나타내며 이는 상승 모멘텀의 강화를 시사합니다. 주요 지지선은 370달러와 350달러이며, 저항선은 400달러와 410달러입니다. 회사는 반도체 및 인프라 소프트웨어 솔루션을 제공하며, 견고한 재무 성과와 성장 전망을 바탕으로 긍정적인 기술적 분석을 받고 있습니다.\"}\n",
+-    "fundamental_analyst": "{\"ticker\": \"AVGO\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 100.06, \"pb_ratio\": 6.59, \"market_cap\": 1842855673856, \"revenue_growth\": 0.164, \"roe\": 0.27083, \"recommendation\": \"적극 매수\", \"summary\": \"브로드컴(AVGO)은 현재 높은 주가수익비율(P/E)과 주가순자산비율(P/B)을 보이지만, 16.4%의 견고한 매출 성장과 27.08%의 높은 자기자본이익률(ROE)을 기록하고 있습니다. 애널리스트들은 회사의 강력한 성장 잠재력을 바탕으로 '적극 매수'를 권고하며, 현재 가격은 미래 성장을 감안할 때 적정하다고 평가됩니다.\"}",
+-    "sentiment_analyst": "{\"ticker\": \"AVGO\", \"sentiment_score\": 8.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"강력 매수\", \"top_headlines\": [\"브로드컴 (NASDAQ:AVGO) 주가는 내재 가치 추정치보다 28% 높을 수 있습니다.\", \"이번 주 시장 전망: 연준 금리 결정 및 파월 의장 발언; 오라클, 브로드컴 실적 발표\", \"다음 브로드컴을 찾기 위한 비밀은 분명하게 드러나 있습니다\"], \"summary\": \"브로드컴(AVGO)은 현재 애널리스트들로부터 '강력 매수' 의견을 받고 있으며, 목표 주가 또한 현재 주가보다 높은 수준을 형성하고 있어 긍정적인 전망이 우세합니다. 최근 뉴스에서는 일부 주가 과대평가 가능성이 제기되었지만, 전반적인 시장 심리는 긍정적이며 다가오는 실적 발표에 대한 기대감이 있습니다. 브로드컴은 지난 1년간 118% 이상의 주가 상승률을 기록하며 뛰어난 성과를 보여주었습니다.\"}",
+-    "risk_assessor": "{\"ticker\": \"AVGO\", \"risk_level\": \"보통\", \"beta\": 1.204, \"volatility\": 0.28, \"max_drawdown\": -0.15, \"sharpe_ratio\": 1.2, \"summary\": \"AVGO 주식은 1.204의 베타 값으로 시장보다 높은 변동성을 보이며 보통 수준의 리스크를 가지고 있습니다. 과거 최대 하락률은 -15%였으나, 1.2의 샤프 비율은 리스크 대비 양호한 수익률을 나타냅니다.\"}"
++    "technical_analyst": "{\"ticker\": \"AVGO\", \"current_price\": 341.5, \"trend\": \"강세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [340.84, 335.85], \"resistance_levels\": [354.13, 359.25], \"summary\": \"Broadcom Inc.는 반도체 및 인프라 소프트웨어 솔루션을 설계, 개발 및 공급하는 글로벌 기업입니다. 2024년 12월 15일 기준 주가는 341.5달러이며, 지난 1년간 강세를 보였습니다. RSI 및 MACD 지표는 제공되지 않았습니다. 주요 지지선은 340.84달러와 335.85달러이며, 저항선은 354.13달러와 359.25달러입니다.\"}\n",
++    "fundamental_analyst": "{\"ticker\": \"AVGO\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 71.3, \"pb_ratio\": 5.8, \"market_cap\": 1612687605760, \"revenue_growth\": 0.164, \"roe\": 0.31, \"recommendation\": \"적극 매수\", \"summary\": \"브로드컴(AVGO)은 반도체 및 인프라 소프트웨어 기업으로, 높은 매출 성장률과 자기자본 이익률을 보입니다. 현재 주가수익비율과 주가순자산비율이 높지만, 향후 이익 성장 기대감이 반영된 것으로 보입니다.\"}",
++    "sentiment_analyst": "{\"ticker\": \"AVGO\", \"sentiment_score\": 7.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"매수 85%, 보유 10%, 매도 5%\", \"top_headlines\": [\"모건 스탠리, 브로드컴 목표 주가 하향 조정\", \"브로드컴, 4분기 실적 호조에도 AI 마진 우려로 11% 하락\", \"기술주 매도세 심화, AI 버블 우려 증폭\"], \"summary\": \"브로드컴(AVGO)은 최근 4분기 매출이 예상을 상회했지만, AI 마진에 대한 시장의 우려로 주가가 11% 하락했습니다. 이에 따라 모건 스탠리도 목표 주가를 하향 조정했습니다. 하지만 42명의 애널리스트들은 여전히 '강력 매수(Strong Buy)' 의견(평균 1.27)을 유지하며 브로드컴의 장기적인 전망은 긍정적입니다. 최근의 주가 하락은 AI 버블 우려와 함께 전반적인 기술주 매도세의 영향을 받은 단기적인 시장 조정으로 해석될 수 있습니다.\"}",
++    "risk_assessor": "{\"ticker\": \"AVGO\", \"risk_level\": \"보통\", \"beta\": 1.204, \"volatility\": 0.3, \"max_drawdown\": -0.25, \"sharpe_ratio\": 1.0, \"summary\": \"AVGO 주식은 시장 대비 보통 수준의 변동성을 보입니다. 베타 값은 1.204로 시장 흐름에 민감하게 반응할 수 있지만, 현재 리스크 지표들은 보통 수준으로 평가됩니다.\"}"
+   }
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/AVGO_fundamental_analyst.json b/demo/ui/mock_data/AVGO_fundamental_analyst.json
+index d3bceea..421da6a 100644
+--- a/demo/ui/mock_data/AVGO_fundamental_analyst.json
++++ b/demo/ui/mock_data/AVGO_fundamental_analyst.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "AVGO",
+   "agent_name": "fundamental_analyst",
+-  "timestamp": "2025-12-08T01:46:30.694154",
+-  "response": "{\"ticker\": \"AVGO\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 100.06, \"pb_ratio\": 6.59, \"market_cap\": 1842855673856, \"revenue_growth\": 0.164, \"roe\": 0.27083, \"recommendation\": \"적극 매수\", \"summary\": \"브로드컴(AVGO)은 현재 높은 주가수익비율(P/E)과 주가순자산비율(P/B)을 보이지만, 16.4%의 견고한 매출 성장과 27.08%의 높은 자기자본이익률(ROE)을 기록하고 있습니다. 애널리스트들은 회사의 강력한 성장 잠재력을 바탕으로 '적극 매수'를 권고하며, 현재 가격은 미래 성장을 감안할 때 적정하다고 평가됩니다.\"}"
++  "timestamp": "2025-12-16T02:55:29.008857",
++  "response": "{\"ticker\": \"AVGO\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": 71.3, \"pb_ratio\": 5.8, \"market_cap\": 1612687605760, \"revenue_growth\": 0.164, \"roe\": 0.31, \"recommendation\": \"적극 매수\", \"summary\": \"브로드컴(AVGO)은 반도체 및 인프라 소프트웨어 기업으로, 높은 매출 성장률과 자기자본 이익률을 보입니다. 현재 주가수익비율과 주가순자산비율이 높지만, 향후 이익 성장 기대감이 반영된 것으로 보입니다.\"}"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/AVGO_risk_assessor.json b/demo/ui/mock_data/AVGO_risk_assessor.json
+index ecf2bb7..912c4da 100644
+--- a/demo/ui/mock_data/AVGO_risk_assessor.json
++++ b/demo/ui/mock_data/AVGO_risk_assessor.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "AVGO",
+   "agent_name": "risk_assessor",
+-  "timestamp": "2025-12-08T01:46:30.694832",
+-  "response": "{\"ticker\": \"AVGO\", \"risk_level\": \"보통\", \"beta\": 1.204, \"volatility\": 0.28, \"max_drawdown\": -0.15, \"sharpe_ratio\": 1.2, \"summary\": \"AVGO 주식은 1.204의 베타 값으로 시장보다 높은 변동성을 보이며 보통 수준의 리스크를 가지고 있습니다. 과거 최대 하락률은 -15%였으나, 1.2의 샤프 비율은 리스크 대비 양호한 수익률을 나타냅니다.\"}"
++  "timestamp": "2025-12-16T02:55:29.010755",
++  "response": "{\"ticker\": \"AVGO\", \"risk_level\": \"보통\", \"beta\": 1.204, \"volatility\": 0.3, \"max_drawdown\": -0.25, \"sharpe_ratio\": 1.0, \"summary\": \"AVGO 주식은 시장 대비 보통 수준의 변동성을 보입니다. 베타 값은 1.204로 시장 흐름에 민감하게 반응할 수 있지만, 현재 리스크 지표들은 보통 수준으로 평가됩니다.\"}"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/AVGO_sentiment_analyst.json b/demo/ui/mock_data/AVGO_sentiment_analyst.json
+index 306e9e5..d2333fe 100644
+--- a/demo/ui/mock_data/AVGO_sentiment_analyst.json
++++ b/demo/ui/mock_data/AVGO_sentiment_analyst.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "AVGO",
+   "agent_name": "sentiment_analyst",
+-  "timestamp": "2025-12-08T01:46:30.694630",
+-  "response": "{\"ticker\": \"AVGO\", \"sentiment_score\": 8.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"강력 매수\", \"top_headlines\": [\"브로드컴 (NASDAQ:AVGO) 주가는 내재 가치 추정치보다 28% 높을 수 있습니다.\", \"이번 주 시장 전망: 연준 금리 결정 및 파월 의장 발언; 오라클, 브로드컴 실적 발표\", \"다음 브로드컴을 찾기 위한 비밀은 분명하게 드러나 있습니다\"], \"summary\": \"브로드컴(AVGO)은 현재 애널리스트들로부터 '강력 매수' 의견을 받고 있으며, 목표 주가 또한 현재 주가보다 높은 수준을 형성하고 있어 긍정적인 전망이 우세합니다. 최근 뉴스에서는 일부 주가 과대평가 가능성이 제기되었지만, 전반적인 시장 심리는 긍정적이며 다가오는 실적 발표에 대한 기대감이 있습니다. 브로드컴은 지난 1년간 118% 이상의 주가 상승률을 기록하며 뛰어난 성과를 보여주었습니다.\"}"
++  "timestamp": "2025-12-16T02:55:29.009677",
++  "response": "{\"ticker\": \"AVGO\", \"sentiment_score\": 7.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"매수 85%, 보유 10%, 매도 5%\", \"top_headlines\": [\"모건 스탠리, 브로드컴 목표 주가 하향 조정\", \"브로드컴, 4분기 실적 호조에도 AI 마진 우려로 11% 하락\", \"기술주 매도세 심화, AI 버블 우려 증폭\"], \"summary\": \"브로드컴(AVGO)은 최근 4분기 매출이 예상을 상회했지만, AI 마진에 대한 시장의 우려로 주가가 11% 하락했습니다. 이에 따라 모건 스탠리도 목표 주가를 하향 조정했습니다. 하지만 42명의 애널리스트들은 여전히 '강력 매수(Strong Buy)' 의견(평균 1.27)을 유지하며 브로드컴의 장기적인 전망은 긍정적입니다. 최근의 주가 하락은 AI 버블 우려와 함께 전반적인 기술주 매도세의 영향을 받은 단기적인 시장 조정으로 해석될 수 있습니다.\"}"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/AVGO_technical_analyst.json b/demo/ui/mock_data/AVGO_technical_analyst.json
+index 315c487..dd67757 100644
+--- a/demo/ui/mock_data/AVGO_technical_analyst.json
++++ b/demo/ui/mock_data/AVGO_technical_analyst.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "AVGO",
+   "agent_name": "technical_analyst",
+-  "timestamp": "2025-12-08T01:46:30.693866",
+-  "response": "{\"ticker\": \"AVGO\", \"current_price\": 390.24, \"trend\": \"강세\", \"rsi\": 62.5, \"macd_signal\": \"골든크로스\", \"support_levels\": [370.0, 350.0], \"resistance_levels\": [400.0, 410.0], \"summary\": \"Broadcom Inc. (AVGO)는 견조한 강세 추세를 보이고 있으며, RSI는 62.5로 과매수 구간 직전입니다. MACD 지표는 골든크로스를 나타내며 이는 상승 모멘텀의 강화를 시사합니다. 주요 지지선은 370달러와 350달러이며, 저항선은 400달러와 410달러입니다. 회사는 반도체 및 인프라 소프트웨어 솔루션을 제공하며, 견고한 재무 성과와 성장 전망을 바탕으로 긍정적인 기술적 분석을 받고 있습니다.\"}\n"
++  "timestamp": "2025-12-16T02:55:29.008209",
++  "response": "{\"ticker\": \"AVGO\", \"current_price\": 341.5, \"trend\": \"강세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [340.84, 335.85], \"resistance_levels\": [354.13, 359.25], \"summary\": \"Broadcom Inc.는 반도체 및 인프라 소프트웨어 솔루션을 설계, 개발 및 공급하는 글로벌 기업입니다. 2024년 12월 15일 기준 주가는 341.5달러이며, 지난 1년간 강세를 보였습니다. RSI 및 MACD 지표는 제공되지 않았습니다. 주요 지지선은 340.84달러와 335.85달러이며, 저항선은 354.13달러와 359.25달러입니다.\"}\n"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/CRWV_FULL_ANALYSIS.json b/demo/ui/mock_data/CRWV_FULL_ANALYSIS.json
+index 5e55c70..ce3cd01 100644
+--- a/demo/ui/mock_data/CRWV_FULL_ANALYSIS.json
++++ b/demo/ui/mock_data/CRWV_FULL_ANALYSIS.json
+@@ -1,10 +1,10 @@
+ {
+   "ticker": "CRWV",
+-  "timestamp": "2025-12-08T03:25:54.345018",
++  "timestamp": "2025-12-16T02:56:37.537591",
+   "agents": {
+-    "technical_analyst": "{\"ticker\": \"CRWV\", \"current_price\": 88.3, \"trend\": \"약세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [84.62, 77.86], \"resistance_levels\": [88.76, 100.02], \"summary\": \"CRWV의 지난 1개월간 주가는 116.44에서 69.21까지 하락 후 88.3까지 반등하는 등 높은 변동성을 보였습니다. 현재 주가는 50일 및 200일 이동평균선 아래에서 거래되고 있으며, 이는 단기 및 중장기적인 약세 추세를 나타냅니다. RSI 지표는 제공되지 않아 과매수 또는 과매도 상태를 판단하기 어렵습니다. 단기 지지선은 84.62, 저항선은 88.76에 위치합니다. 추가적인 분석을 위해서는 MACD와 같은 다른 기술 지표와 함께 더 긴 기간의 가격 데이터를 검토하는 것이 좋습니다.\"}",
+-    "fundamental_analyst": "{\"ticker\": \"CRWV\", \"valuation_verdict\": \"저평가\", \"pe_ratio\": 0, \"pb_ratio\": 11.3, \"market_cap\": 44001435648, \"revenue_growth\": 1.337, \"roe\": -0.2917, \"recommendation\": \"매수\", \"summary\": \"CoreWeave는 GenAI용 클라우드 플랫폼을 운영하는 기술 기업입니다. 높은 매출 성장률(133.7%)을 보이지만 현재는 수익성이 좋지 않으며, 분석가들은 매수를 추천하고 있습니다.\"}",
+-    "sentiment_analyst": "{\"ticker\": \"CRWV\", \"sentiment_score\": 7.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"매수 75%, 보유 20%, 매도 5%\", \"top_headlines\": [\"CoreWeave, 새로운 AI 투자로 20.8% 급등\", \"CoreWeave, 수익성 달성 및 AI 인프라 확장에 집중\", \"CoreWeave의 연방 시장 진출이 경쟁 우위를 강화할 것인가?\"], \"summary\": \"CoreWeave (CRWV)는 GenAI 워크로드를 위한 클라우드 플랫폼을 운영하는 기술 기업입니다. 최근 새로운 AI 투자에 힘입어 주가가 20.8% 급등했으며, 3분기 매출 13억 6천만 달러를 기록하며 매출 측면에서 수익성을 달성했다고 보도되었습니다. 또한, 연방 시장 진출과 NASA 초기 채택으로 공공 부문에서의 성장 잠재력도 주목받고 있습니다. 25명의 애널리스트가 평균 2.1점(매수)으로 평가하며 긍정적인 전망을 내놓고 있으나, 일부 보도에서는 여전히 순이익을 내지 못하고 있으며 52주 신고가 대비 60% 하락한 점도 언급되어 투자에는 신중함이 요구됩니다. 전반적으로 AI 인프라 시장에서의 강력한 성장 동력과 긍정적인 시장 반응이 기대되지만, 실제 순이익 창출 여부는 지속적으로 지켜봐야 합니다.\"}",
+-    "risk_assessor": "{\"ticker\": \"CRWV\", \"risk_level\": \"매우 높음\", \"beta\": 1.25, \"volatility\": 0.5, \"max_drawdown\": -0.53, \"sharpe_ratio\": 0.8, \"summary\": \"CoreWeave, Inc.는 GenAI를 위한 확장, 지원 및 가속화를 제공하는 클라우드 플랫폼을 운영합니다. 이 회사의 제품에는 기업 워크로드를 위한 GPU 및 CPU 컴퓨팅, 스토리지, 네트워킹 및 관리형 서비스가 포함됩니다.\"}"
++    "technical_analyst": "{\"ticker\": \"CRWV\", \"current_price\": 73.66, \"trend\": \"약세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [72.02, 65.22], \"resistance_levels\": [79.735, 83.49], \"summary\": \"CoreWeave Inc.는 GenAI를 위한 확장, 지원 및 가속 기능을 제공하는 클라우드 플랫폼을 운영합니다. 2025년 12월 15일 기준 주가는 73.66달러이며, 지난 1년간 변동성이 큰 약세를 보였습니다. RSI 및 MACD 지표는 제공되지 않았습니다. 주요 지지선은 72.02달러와 65.22달러이며, 저항선은 79.735달러와 83.49달러입니다.\"}",
++    "fundamental_analyst": "{\"ticker\": \"CRWV\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": -44.37, \"pb_ratio\": 9.45, \"market_cap\": 36701085696, \"revenue_growth\": 1.337, \"roe\": -0.292, \"recommendation\": \"매수\", \"summary\": \"CoreWeave는 GenAI 클라우드 플랫폼을 제공하는 기술 기업으로, 133.7%의 높은 매출 성장률을 기록하고 있습니다. 현재 수익성은 음수이나 높은 성장 잠재력과 애널리스트들의 '매수' 추천을 고려할 때 적정가로 평가됩니다.\"}",
++    "sentiment_analyst": "CRWV는 CoreWeave, Inc.의 티커 심볼입니다. 이전 분석에서 유효하지 않다고 말씀드린 점 죄송합니다. 지금 바로 CRWV 주식 분석을 진행해 드릴까요?",
++    "risk_assessor": "{\"ticker\": \"CRWV\", \"risk_level\": \"높음\", \"beta\": 1.5, \"volatility\": 0.5, \"max_drawdown\": -0.61, \"sharpe_ratio\": 0.5, \"summary\": \"CRWV 주식은 AI 클라우드 플랫폼 기업으로, 높은 성장 잠재력과 함께 높은 변동성을 보입니다. 필요한 모든 리스크 지표를 직접적으로 얻을 수 없어 일부 값은 시장 특성을 고려하여 추정되었습니다.\"}"
+   }
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/CRWV_fundamental_analyst.json b/demo/ui/mock_data/CRWV_fundamental_analyst.json
+index 66f75ca..9dff858 100644
+--- a/demo/ui/mock_data/CRWV_fundamental_analyst.json
++++ b/demo/ui/mock_data/CRWV_fundamental_analyst.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "CRWV",
+   "agent_name": "fundamental_analyst",
+-  "timestamp": "2025-12-08T03:25:54.347748",
+-  "response": "{\"ticker\": \"CRWV\", \"valuation_verdict\": \"저평가\", \"pe_ratio\": 0, \"pb_ratio\": 11.3, \"market_cap\": 44001435648, \"revenue_growth\": 1.337, \"roe\": -0.2917, \"recommendation\": \"매수\", \"summary\": \"CoreWeave는 GenAI용 클라우드 플랫폼을 운영하는 기술 기업입니다. 높은 매출 성장률(133.7%)을 보이지만 현재는 수익성이 좋지 않으며, 분석가들은 매수를 추천하고 있습니다.\"}"
++  "timestamp": "2025-12-16T02:56:37.538372",
++  "response": "{\"ticker\": \"CRWV\", \"valuation_verdict\": \"적정가\", \"pe_ratio\": -44.37, \"pb_ratio\": 9.45, \"market_cap\": 36701085696, \"revenue_growth\": 1.337, \"roe\": -0.292, \"recommendation\": \"매수\", \"summary\": \"CoreWeave는 GenAI 클라우드 플랫폼을 제공하는 기술 기업으로, 133.7%의 높은 매출 성장률을 기록하고 있습니다. 현재 수익성은 음수이나 높은 성장 잠재력과 애널리스트들의 '매수' 추천을 고려할 때 적정가로 평가됩니다.\"}"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/CRWV_risk_assessor.json b/demo/ui/mock_data/CRWV_risk_assessor.json
+index 21c1fe8..5416d5c 100644
+--- a/demo/ui/mock_data/CRWV_risk_assessor.json
++++ b/demo/ui/mock_data/CRWV_risk_assessor.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "CRWV",
+   "agent_name": "risk_assessor",
+-  "timestamp": "2025-12-08T03:25:54.348950",
+-  "response": "{\"ticker\": \"CRWV\", \"risk_level\": \"매우 높음\", \"beta\": 1.25, \"volatility\": 0.5, \"max_drawdown\": -0.53, \"sharpe_ratio\": 0.8, \"summary\": \"CoreWeave, Inc.는 GenAI를 위한 확장, 지원 및 가속화를 제공하는 클라우드 플랫폼을 운영합니다. 이 회사의 제품에는 기업 워크로드를 위한 GPU 및 CPU 컴퓨팅, 스토리지, 네트워킹 및 관리형 서비스가 포함됩니다.\"}"
++  "timestamp": "2025-12-16T02:56:37.539046",
++  "response": "{\"ticker\": \"CRWV\", \"risk_level\": \"높음\", \"beta\": 1.5, \"volatility\": 0.5, \"max_drawdown\": -0.61, \"sharpe_ratio\": 0.5, \"summary\": \"CRWV 주식은 AI 클라우드 플랫폼 기업으로, 높은 성장 잠재력과 함께 높은 변동성을 보입니다. 필요한 모든 리스크 지표를 직접적으로 얻을 수 없어 일부 값은 시장 특성을 고려하여 추정되었습니다.\"}"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/CRWV_sentiment_analyst.json b/demo/ui/mock_data/CRWV_sentiment_analyst.json
+index 41c5e22..c798f2c 100644
+--- a/demo/ui/mock_data/CRWV_sentiment_analyst.json
++++ b/demo/ui/mock_data/CRWV_sentiment_analyst.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "CRWV",
+   "agent_name": "sentiment_analyst",
+-  "timestamp": "2025-12-08T03:25:54.348354",
+-  "response": "{\"ticker\": \"CRWV\", \"sentiment_score\": 7.5, \"sentiment_verdict\": \"강세\", \"analyst_consensus\": \"매수 75%, 보유 20%, 매도 5%\", \"top_headlines\": [\"CoreWeave, 새로운 AI 투자로 20.8% 급등\", \"CoreWeave, 수익성 달성 및 AI 인프라 확장에 집중\", \"CoreWeave의 연방 시장 진출이 경쟁 우위를 강화할 것인가?\"], \"summary\": \"CoreWeave (CRWV)는 GenAI 워크로드를 위한 클라우드 플랫폼을 운영하는 기술 기업입니다. 최근 새로운 AI 투자에 힘입어 주가가 20.8% 급등했으며, 3분기 매출 13억 6천만 달러를 기록하며 매출 측면에서 수익성을 달성했다고 보도되었습니다. 또한, 연방 시장 진출과 NASA 초기 채택으로 공공 부문에서의 성장 잠재력도 주목받고 있습니다. 25명의 애널리스트가 평균 2.1점(매수)으로 평가하며 긍정적인 전망을 내놓고 있으나, 일부 보도에서는 여전히 순이익을 내지 못하고 있으며 52주 신고가 대비 60% 하락한 점도 언급되어 투자에는 신중함이 요구됩니다. 전반적으로 AI 인프라 시장에서의 강력한 성장 동력과 긍정적인 시장 반응이 기대되지만, 실제 순이익 창출 여부는 지속적으로 지켜봐야 합니다.\"}"
++  "timestamp": "2025-12-16T02:56:37.538560",
++  "response": "CRWV는 CoreWeave, Inc.의 티커 심볼입니다. 이전 분석에서 유효하지 않다고 말씀드린 점 죄송합니다. 지금 바로 CRWV 주식 분석을 진행해 드릴까요?"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/mock_data/CRWV_technical_analyst.json b/demo/ui/mock_data/CRWV_technical_analyst.json
+index 0c272cb..0aaedaf 100644
+--- a/demo/ui/mock_data/CRWV_technical_analyst.json
++++ b/demo/ui/mock_data/CRWV_technical_analyst.json
+@@ -1,6 +1,6 @@
+ {
+   "ticker": "CRWV",
+   "agent_name": "technical_analyst",
+-  "timestamp": "2025-12-08T03:25:54.347297",
+-  "response": "{\"ticker\": \"CRWV\", \"current_price\": 88.3, \"trend\": \"약세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [84.62, 77.86], \"resistance_levels\": [88.76, 100.02], \"summary\": \"CRWV의 지난 1개월간 주가는 116.44에서 69.21까지 하락 후 88.3까지 반등하는 등 높은 변동성을 보였습니다. 현재 주가는 50일 및 200일 이동평균선 아래에서 거래되고 있으며, 이는 단기 및 중장기적인 약세 추세를 나타냅니다. RSI 지표는 제공되지 않아 과매수 또는 과매도 상태를 판단하기 어렵습니다. 단기 지지선은 84.62, 저항선은 88.76에 위치합니다. 추가적인 분석을 위해서는 MACD와 같은 다른 기술 지표와 함께 더 긴 기간의 가격 데이터를 검토하는 것이 좋습니다.\"}"
++  "timestamp": "2025-12-16T02:56:37.538161",
++  "response": "{\"ticker\": \"CRWV\", \"current_price\": 73.66, \"trend\": \"약세\", \"rsi\": null, \"macd_signal\": null, \"support_levels\": [72.02, 65.22], \"resistance_levels\": [79.735, 83.49], \"summary\": \"CoreWeave Inc.는 GenAI를 위한 확장, 지원 및 가속 기능을 제공하는 클라우드 플랫폼을 운영합니다. 2025년 12월 15일 기준 주가는 73.66달러이며, 지난 1년간 변동성이 큰 약세를 보였습니다. RSI 및 MACD 지표는 제공되지 않았습니다. 주요 지지선은 72.02달러와 65.22달러이며, 저항선은 79.735달러와 83.49달러입니다.\"}"
+ }
+\ No newline at end of file
+diff --git a/demo/ui/styles/stock_styles.py b/demo/ui/styles/stock_styles.py
+index 2bf2ffe..3d53e11 100644
+--- a/demo/ui/styles/stock_styles.py
++++ b/demo/ui/styles/stock_styles.py
+@@ -105,14 +105,17 @@ def get_badge_color(value: str) -> str:
+ STOCK_INPUT_CONTAINER_STYLE = me.Style(
+     display='flex',
+     flex_direction='column',
+-    gap=12,
+-    padding=me.Padding.all(20),
++    gap=16,
++    padding=me.Padding.all(24),
+     background=COLORS['surface'],
+-    border_radius=12,
+-    margin=me.Margin(bottom=16),
++    border_radius=16,
++    margin=me.Margin.symmetric(vertical=40, horizontal='auto'),
++    width='100%',
++    max_width='700px',
+     border=me.Border.all(
+         me.BorderSide(width=1, color=COLORS['card_border'], style='solid')
+     ),
++    box_shadow=f'0 4px 20px {COLORS["card_shadow"]}',
+ )
+ 
+ STOCK_INPUT_ROW_STYLE = me.Style(

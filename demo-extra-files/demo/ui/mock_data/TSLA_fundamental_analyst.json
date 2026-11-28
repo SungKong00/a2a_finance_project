@@ -1,0 +1,6 @@
+{
+  "ticker": "TSLA",
+  "agent_name": "fundamental_analyst",
+  "timestamp": "2025-12-16T00:28:42.910365",
+  "response": "503 UNAVAILABLE. {'error': {'code': 503, 'message': 'The model is overloaded. Please try again later.', 'status': 'UNAVAILABLE'}}"
+}
